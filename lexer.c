@@ -33,7 +33,7 @@ list *lexer(FILE *fp) {
   long curr_index = 0;
   char last_char = buffer[curr_index];
 
-  for ( ;last_char != '\0'; curr_index++, last_char = buffer[curr_index]) {
+  for (; last_char != '\0'; curr_index++, last_char = buffer[curr_index]) {
 
     while (isspace(last_char)) {
       curr_index++;
@@ -69,6 +69,24 @@ list *lexer(FILE *fp) {
       new_token = malloc(sizeof(token_t));
       new_token->type = semicolon;
       new_token->value = ";";
+      list_push_back(token_list, new_token);
+      continue;
+    case '-':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = negation;
+      new_token->value = "-";
+      list_push_back(token_list, new_token);
+      continue;
+    case '~':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = bitwise_complement;
+      new_token->value = "~";
+      list_push_back(token_list, new_token);
+      continue;
+    case '!':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = logical_negation;
+      new_token->value = "!";
       list_push_back(token_list, new_token);
       continue;
     }
