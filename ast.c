@@ -74,7 +74,34 @@ void unary_operator_print(unary_operator_ast_t *unary_operator_ast, int level) {
   expr_print(unary_operator_ast->expr_ast, level + 1);
 }
 
-// expr  = Expr(int) | unOp(operator, expr)
+// binOp(binary_operator, exp, exp)
+typedef struct binary_operator_ast {
+  char *operator_str;
+  expr_ast_t *left_expr;
+  expr_ast_t *right_expr;
+} binary_operator_ast_t;
+
+binary_operator_ast_t *new_binary_operator(char *operator, expr_ast_t *left_expr, expr_ast_t *right_expr) {
+  binary_operator_ast_t *binary_operator_ast = malloc(sizeof(binary_operator_ast_t));
+  binary_operator_ast->operator_str = operator;
+  binary_operator_ast->left_expr = left_expr;
+  binary_operator_ast->right_expr = right_expr;
+  return binary_operator_ast;
+}
+void binary_operator_print(binary_operator_ast_t *binary_operator_ast, int level) {
+  print_space(level);
+  printf("二元运算：\n");
+  print_space(level);
+  printf("运算符：%s\n", binary_operator_ast->operator_str);
+  print_space(level);
+  printf("操作数1：\n");
+  expr_print(binary_operator_ast->left_expr, level + 1);
+  print_space(level);
+  printf("操作数2：\n");
+  expr_print(binary_operator_ast->right_expr, level + 1);
+}
+
+// expr  = Expr(int) | unOp(operator, expr) | BinOp(binary_operator, exp, exp)
 struct expr_ast {
   union {
     number_ast_t *number_ast;
