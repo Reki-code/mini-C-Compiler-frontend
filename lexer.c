@@ -29,54 +29,43 @@ list *lexer(FILE *fp) {
   }
   size_t read_size = fread(buffer, sizeof(char), numbytes, fp);
   fclose(fp);
-  buffer[read_size] = EOF;
 
   long curr_index = 0;
   char last_char = buffer[curr_index];
 
-  while (last_char != EOF) {
+  for ( ;last_char != '\0'; curr_index++, last_char = buffer[curr_index]) {
 
-    while (isspace(last_char) || last_char == '\n') {
+    while (isspace(last_char)) {
       curr_index++;
       last_char = buffer[curr_index];
     }
     token_t *new_token;
     switch (last_char) {
     case '{':
-      curr_index++;
-      last_char = buffer[curr_index];
       new_token = malloc(sizeof(token_t));
       new_token->type = open_brace;
       new_token->value = "{";
       list_push_back(token_list, new_token);
       continue;
     case '}':
-      curr_index++;
-      last_char = buffer[curr_index];
       new_token = malloc(sizeof(token_t));
       new_token->type = close_brace;
       new_token->value = "}";
       list_push_back(token_list, new_token);
       continue;
     case '(':
-      curr_index++;
-      last_char = buffer[curr_index];
       new_token = malloc(sizeof(token_t));
       new_token->type = open_parenthesis;
       new_token->value = "(";
       list_push_back(token_list, new_token);
       continue;
     case ')':
-      curr_index++;
-      last_char = buffer[curr_index];
       new_token = malloc(sizeof(token_t));
       new_token->type = close_parenthesis;
       new_token->value = ")";
       list_push_back(token_list, new_token);
       continue;
     case ';':
-      curr_index++;
-      last_char = buffer[curr_index];
       new_token = malloc(sizeof(token_t));
       new_token->type = semicolon;
       new_token->value = ";";
@@ -110,6 +99,7 @@ list *lexer(FILE *fp) {
         new_token->value = keyword_array[c];
       }
       list_push_back(token_list, new_token);
+      continue;
     }
     // number
     if (isdigit(last_char)) {
@@ -125,12 +115,14 @@ list *lexer(FILE *fp) {
         curr_index++;
         last_char = buffer[curr_index];
       }
+      curr_index--;
       str_index++;
       str_value[str_index] = '\0';
       token_t *new_token = malloc(sizeof(token_t));
       new_token->type = number;
       new_token->value = str_value;
       list_push_back(token_list, new_token);
+      continue;
     }
     // comment or Division
     if (last_char == '/') {
@@ -141,13 +133,14 @@ list *lexer(FILE *fp) {
           curr_index++;
           last_char = buffer[curr_index];
         }
-        curr_index++;
-        last_char = buffer[curr_index];
+        continue;
       } else { // Division
+        curr_index--;
         token_t *new_token = malloc(sizeof(token_t));
         new_token->type = operator;
         new_token->value = "/";
         list_push_back(token_list, new_token);
+        continue;
       }
     }
     // operator
@@ -158,8 +151,7 @@ list *lexer(FILE *fp) {
       new_token->type = operator;
       new_token->value = str_value;
       list_push_back(token_list, new_token);
-      curr_index++;
-      last_char = buffer[curr_index];
+      continue;
     }
     // == or =
     if (last_char == '=') {
@@ -170,13 +162,14 @@ list *lexer(FILE *fp) {
         new_token->type = operator;
         new_token->value = "==";
         list_push_back(token_list, new_token);
-        curr_index++;
-        last_char = buffer[curr_index];
+        continue;
       } else {
+        curr_index--;
         token_t *new_token = malloc(sizeof(token_t));
         new_token->type = operator;
         new_token->value = "=";
         list_push_back(token_list, new_token);
+        continue;
       }
     }
     // "string"
@@ -199,9 +192,7 @@ list *lexer(FILE *fp) {
       new_token->type = literal;
       new_token->value = str_value;
       list_push_back(token_list, new_token);
-
-      curr_index++;
-      last_char = buffer[curr_index];
+      continue;
     }
   }
   token_t *new_token = malloc(sizeof(token_t));
