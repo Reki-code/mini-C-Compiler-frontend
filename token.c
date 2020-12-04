@@ -1,0 +1,25 @@
+#include "token.h"
+#include "lexer.h"
+#include <stdio.h>
+
+void print_token(void *token) {
+  token_t *tp = token;
+  printf("(%s  \t'%s')\n", get_type_name(tp->type), tp->value);
+}
+
+char *type_names[] = {
+  [open_brace] = "左大括号",
+  [close_brace] = "右大括号",
+  [open_parenthesis] = "左小括号",
+  [close_parenthesis] = "右小括号",
+  [semicolon] = "分号",
+	[identifier] = "标识符",
+	[return_k] = "关键字return",
+  [int_k] = "关键字int",
+	[number] = "整数常量",
+	[operator] = "运算符",
+	[literal] = "字符串字面量",
+	[eof] = "结束标记"
+};
+
+char *get_type_name(type_t type) { return type_names[type]; }
