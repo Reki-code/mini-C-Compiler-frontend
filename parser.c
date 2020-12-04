@@ -13,15 +13,25 @@
 <program> ::= <function>
 <function> ::= "int" <id> "(" ")" "{" <statement> "}"
 <statement> ::= "return" <int> ";" | "int" <id> "=" <int> ";"
-<exp> ::= <int>
+<exp> ::= <unary_op> <exp> | <int>
+<unary_op> ::= "!" | "~" | "-"
 */
 
-// <exp> ::= <int>
+
+// <exp> ::= <unary_op> <exp> | <int>
 expr_ast_t *parse_expr(list *tokens) {
     token_t *tok = list_pop(tokens);
-    int num = (int) strtol(tok->value, NULL, 10);
-    number_ast_t *number = new_number_ast(num);
-    return new_expr_ast(number);
+    if (tok->type == number) { // <int>
+      int num = (int) strtol(tok->value, NULL, 10);
+      number_ast_t *number = new_number_ast(num);
+      return new_expr_ast_w_number(number);
+    } else { // <unary_op> <exp>
+      char *op = tok->value;
+      expr_ast_t *inner_expr = parse_expr(tokens);
+      unary_operator_ast_t *unary_operator_ast = new_unary_operator(op, inner_expr);
+      return new_expr_ast_w_unary(unary_operator_ast);
+    }
+
 }
 
 // <id> ::= string
@@ -107,8 +117,8 @@ int main(int argc, char const *argv[]) {
 
     printf("%s\n", "start parser");
     program_ast_t *program = parser(token_list);
-    program_print(program);
     printf("%s\n", "parser finished");
+    program_print(program);
 
     return 0;
 }

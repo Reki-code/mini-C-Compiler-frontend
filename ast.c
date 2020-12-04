@@ -44,23 +44,72 @@ void identifier_print(identifier_ast_t *identifier_ast, int level) {
   printf("标识符：%s\n", identifier_ast->name);
 }
 
-// expr  = Expr(int)
-typedef struct expr_ast {
-  number_ast_t *number_ast;
-} expr_ast_t;
+struct expr_ast;
+typedef struct expr_ast expr_ast_t;
+void expr_print(expr_ast_t *expr_ast, int level);
 
-void expr_ast_init(expr_ast_t *expr_ast, number_ast_t *number_ast) {
-  expr_ast->number_ast = number_ast;
+// unOp(operator, expr)
+typedef struct unary_operator_ast {
+  char *operator_str;
+  expr_ast_t *expr_ast;
+} unary_operator_ast_t;
+
+void unary_operator_ast_init(unary_operator_ast_t *unary_operator_ast,
+                             char *operator, expr_ast_t * expr_ast) {
+  unary_operator_ast->operator_str = operator;
+  unary_operator_ast->expr_ast = expr_ast;
 }
-expr_ast_t *new_expr_ast(number_ast_t *number_ast) {
+unary_operator_ast_t *new_unary_operator(char *operator,
+                                         expr_ast_t * expr_ast) {
+  unary_operator_ast_t *unary_operator_ast =
+      malloc(sizeof(unary_operator_ast_t));
+  unary_operator_ast_init(unary_operator_ast, operator, expr_ast);
+  return unary_operator_ast;
+}
+void unary_operator_print(unary_operator_ast_t *unary_operator_ast, int level) {
+  print_space(level);
+  printf("一元运算：\n");
+  print_space(level);
+  printf("运算符：%s\n", unary_operator_ast->operator_str);
+  expr_print(unary_operator_ast->expr_ast, level + 1);
+}
+
+// expr  = Expr(int) | unOp(operator, expr)
+struct expr_ast {
+  union {
+    number_ast_t *number_ast;
+    unary_operator_ast_t *unary_operator_ast;
+  };
+  int u;
+};
+
+void expr_ast_init_w_number(expr_ast_t *expr_ast, number_ast_t *number_ast) {
+  expr_ast->number_ast = number_ast;
+  expr_ast->u = 0;
+}
+expr_ast_t *new_expr_ast_w_number(number_ast_t *number_ast) {
   expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
-  expr_ast_init(expr_ast, number_ast);
+  expr_ast_init_w_number(expr_ast, number_ast);
   return expr_ast;
 }
+expr_ast_t *new_expr_ast_w_unary(unary_operator_ast_t *unary_operator_ast) {
+  expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
+  expr_ast->unary_operator_ast = unary_operator_ast;
+  expr_ast->u = 1;
+  return expr_ast;
+}
+
 void expr_print(expr_ast_t *expr_ast, int level) {
   print_space(level);
   printf("求值表达式：\n");
-  number_print(expr_ast->number_ast, level + 1);
+  switch (expr_ast->u) {
+  case 0:
+    number_print(expr_ast->number_ast, level + 1);
+    break;
+  case 1:
+    unary_operator_print(expr_ast->unary_operator_ast, level + 1);
+    break;
+  }
 }
 
 // return
