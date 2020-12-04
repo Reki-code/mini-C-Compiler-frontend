@@ -13,20 +13,24 @@
 <program> ::= <function>
 <function> ::= "int" <id> "(" ")" "{" <statement> "}"
 <statement> ::= "return" <int> ";" | "int" <id> "=" <int> ";"
-<exp> ::= <term> { ("+" | "-") <term> }
+<exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
+<logical-and-exp> ::= <equality-exp> { "&&" <equality-exp> }
+<equality-exp> ::= <relational-exp> { ("!=" | "==") <relational-exp> }
+<relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" | ">=") <additive-exp> }
+<additive-exp> ::= <term> { ("+" | "-") <term> }
 <term> ::= <factor> { ("*" | "/") <factor> }
 <factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int>
 <unary_op> ::= "!" | "~" | "-"
 */
 
-expr_ast_t *parse_expr(list *tokens);
+expr_ast_t *parse_additive_expr(list *tokens);
 
 // <factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int>
 expr_ast_t *parse_factor(list *tokens) {
   token_t *tok = list_pop(tokens);
   if (tok->type == open_parenthesis) {
     // <factor> ::= "(" <exp> ")"
-    expr_ast_t *expr_ast = parse_expr(tokens);
+    expr_ast_t *expr_ast = parse_additive_expr(tokens);
     tok = list_pop(tokens);
     if (tok->type != close_parenthesis) {
       fprintf(stderr, "%s\n", "缺少 \")\"");
@@ -65,8 +69,8 @@ expr_ast_t *parse_term(list *tokens) {
   return factor;
 }
 
-// <exp> ::= <term> { ("+" | "-") <term> }
-expr_ast_t *parse_expr(list *tokens) {
+// <additive-exp> ::= <term> { ("+" | "-") <term> }
+expr_ast_t *parse_additive_expr(list *tokens) {
   expr_ast_t *term = parse_term(tokens);
   token_t *tok = list_peek(tokens);
   while (tok->type == negation || tok->type == addition) {
@@ -81,21 +85,84 @@ expr_ast_t *parse_expr(list *tokens) {
   return term;
 }
 
+// <relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" | ">=")
+// <additive-exp> }
+expr_ast_t *parse_relational_expr(list *tokens) {
+  expr_ast_t *additive_expr = parse_additive_expr(tokens);
+  token_t *tok = list_peek(tokens);
+  while (tok->type == less_than || tok->type == greater_than ||
+         tok->type == less_than_or_equal ||
+         tok->type == greater_than_or_equal) {
+    list_pop(tokens);
+    char *op = tok->value;
+    expr_ast_t *next_additive_epxr = parse_additive_expr(tokens);
+    binary_operator_ast_t *binary_operator_ast =
+        new_binary_operator(op, additive_expr, next_additive_epxr);
+    additive_expr = new_expr_ast_w_binary(binary_operator_ast);
+    tok = list_peek(tokens);
+  }
+  return additive_expr;
+}
+
+// <equality-exp> ::= <relational-exp> { ("!=" | "==") <relational-exp> }
+expr_ast_t *parse_equality_expr(list *tokens) {
+  expr_ast_t *relational_expr = parse_relational_expr(tokens);
+  token_t *tok = list_peek(tokens);
+  while (tok->type == not_equal || tok->type == equal) {
+    list_pop(tokens);
+    char *op = tok->value;
+    expr_ast_t *next_relational_expr = parse_relational_expr(tokens);
+    binary_operator_ast_t *binary_operator_ast =
+        new_binary_operator(op, relational_expr, next_relational_expr);
+    relational_expr = new_expr_ast_w_binary(binary_operator_ast);
+    tok = list_peek(tokens);
+  }
+  return relational_expr;
+}
+
+// <logical-and-exp> ::= <equality-exp> { "&&" <equality-exp> }
+expr_ast_t *parse_logical_and_expr(list *tokens) {
+  expr_ast_t *equality_expr = parse_equality_expr(tokens);
+  token_t *tok = list_peek(tokens);
+  while (tok->type == and_k) {
+    list_pop(tokens);
+    expr_ast_t *next_equality_expr = parse_equality_expr(tokens);
+    binary_operator_ast_t *binary_operator_ast = new_binary_operator("&&", equality_expr, next_equality_expr);
+    equality_expr = new_expr_ast_w_binary(binary_operator_ast);
+    tok = list_peek(tokens);
+  }
+  return equality_expr;
+}
+
+// <exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
+expr_ast_t *parse_expr(list *tokens) {
+  expr_ast_t *logical_and_expr = parse_logical_and_expr(tokens);
+  token_t *tok = list_peek(tokens);
+  while (tok->type == or_k) {
+    list_pop(tokens);
+    expr_ast_t *next_logical_and_expr = parse_logical_and_expr(tokens);
+    binary_operator_ast_t *binary_operator_ast = new_binary_operator("||", logical_and_expr, next_logical_and_expr);
+    logical_and_expr = new_expr_ast_w_binary(binary_operator_ast);
+    tok = list_peek(tokens);
+  }
+  return logical_and_expr;
+}
+
 // <id> ::= string
 identifier_ast_t *parse_identifier(list *tokens) {
   token_t *tok = list_pop(tokens);
   return new_identifier_ast(tok->value);
 }
 
-// <statement> ::= "return" <int> ";" | "int" <id> "=" <int> ";"
+// <statement> ::= "return" <int> ";" | "int" <id> "=" <expr> ";"
 statement_ast_t *parse_statement(list *tokens) {
   token_t *tok = list_pop(tokens);
   statement_ast_t *statement = new_statement_ast();
   if (tok->type == return_k) { // "return" expr ";"
-    expr_ast_t *expr_ast = parse_expr(tokens);
+    expr_ast_t *expr_ast = parse_additive_expr(tokens);
     return_ast_t *return_ast = new_return_ast(expr_ast);
     statement_ast_init_w_return(statement, return_ast);
-  } else if (tok->type == int_k) { // "int" <id> "=" expr ";"
+  } else if (tok->type == int_k) { // "int" <id> "=" <expr> ";"
     identifier_ast_t *identifier_ast = parse_identifier(tokens);
     tok = list_pop(tokens); // pop "="
     if (tok->type != assign) {
