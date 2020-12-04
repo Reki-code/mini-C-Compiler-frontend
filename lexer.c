@@ -86,8 +86,15 @@ list *lexer(FILE *fp) {
       continue;
     case '!':
       new_token = malloc(sizeof(token_t));
-      new_token->type = logical_negation;
-      new_token->value = "!";
+      peek = buffer[curr_index + 1];
+      if (peek == '=') { // "!="
+        curr_index++;
+        new_token->type = not_equal;
+        new_token->value = "!=";
+      } else {
+        new_token->type = logical_negation;
+        new_token->value = "!";
+      }
       list_push_back(token_list, new_token);
       continue;
     case '+':
@@ -105,7 +112,9 @@ list *lexer(FILE *fp) {
     case '/':
       peek = buffer[curr_index + 1];
       if (peek == '/') { // "//"
-        for (; last_char != '\n'; curr_index++, last_char = buffer[curr_index]) {}
+        for (; last_char != '\n';
+             curr_index++, last_char = buffer[curr_index]) {
+        }
         continue;
       } else {
         new_token = malloc(sizeof(token_t));
@@ -119,7 +128,7 @@ list *lexer(FILE *fp) {
       peek = buffer[curr_index + 1];
       if (peek == '=') { // "=="
         curr_index++;
-        new_token->type = operator;
+        new_token->type = equal;
         new_token->value = "==";
       } else {
         new_token->type = assign;
@@ -127,6 +136,54 @@ list *lexer(FILE *fp) {
       }
       list_push_back(token_list, new_token);
       continue;
+    case '&':
+      peek = buffer[curr_index + 1];
+      if (peek == '&') { // "&&"
+        new_token = malloc(sizeof(token_t));
+        curr_index++;
+        new_token->type = and_k;
+        new_token->value = "&&";
+        list_push_back(token_list, new_token);
+        continue;
+      }
+      break;
+    case '|':
+      peek = buffer[curr_index + 1];
+      if (peek == '|') { // "||"
+        new_token = malloc(sizeof(token_t));
+        curr_index++;
+        new_token->type = or_k;
+        new_token->value = "||";
+        list_push_back(token_list, new_token);
+        continue;
+      }
+      break;
+    case '<':
+      new_token = malloc(sizeof(token_t));
+      peek = buffer[curr_index + 1];
+      if (peek == '=') { // "<="
+        curr_index++;
+        new_token->type = less_than_or_equal;
+        new_token->value = "<=";
+      } else { // "<"
+        new_token->type = less_than;
+        new_token->value = "<";
+      }
+      list_push_back(token_list, new_token);
+      continue;
+      case '>':
+        new_token = malloc(sizeof(token_t));
+        peek = buffer[curr_index + 1];
+        if (peek == '=') { // ">="
+          curr_index++;
+          new_token->type = greater_than_or_equal;
+          new_token->value = ">=";
+        } else { // "<"
+          new_token->type = greater_than;
+          new_token->value = ">";
+        }
+        list_push_back(token_list, new_token);
+        continue;
     }
 
     // identifier and keyword
