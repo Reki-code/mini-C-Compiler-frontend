@@ -40,6 +40,7 @@ list *lexer(FILE *fp) {
       last_char = buffer[curr_index];
     }
     token_t *new_token;
+    char peek;
     switch (last_char) {
     case '{':
       new_token = malloc(sizeof(token_t));
@@ -89,10 +90,34 @@ list *lexer(FILE *fp) {
       new_token->value = "!";
       list_push_back(token_list, new_token);
       continue;
+    case '+':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = addition;
+      new_token->value = "+";
+      list_push_back(token_list, new_token);
+      continue;
+    case '*':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = multiplication;
+      new_token->value = "*";
+      list_push_back(token_list, new_token);
+      continue;
+    case '/':
+      peek = buffer[curr_index + 1];
+      if (peek == '/') { // "//"
+        for (; last_char != '\n'; curr_index++, last_char = buffer[curr_index]) {}
+        continue;
+      } else {
+        new_token = malloc(sizeof(token_t));
+        new_token->type = division;
+        new_token->value = "/";
+        list_push_back(token_list, new_token);
+        continue;
+      }
     case '=':
       new_token = malloc(sizeof(token_t));
-      char peek = buffer[curr_index + 1];
-      if (peek == '=') {
+      peek = buffer[curr_index + 1];
+      if (peek == '=') { // "=="
         curr_index++;
         new_token->type = operator;
         new_token->value = "==";
@@ -152,35 +177,6 @@ list *lexer(FILE *fp) {
       str_value[str_index] = '\0';
       token_t *new_token = malloc(sizeof(token_t));
       new_token->type = number;
-      new_token->value = str_value;
-      list_push_back(token_list, new_token);
-      continue;
-    }
-    // comment or Division
-    if (last_char == '/') {
-      curr_index++;
-      last_char = buffer[curr_index];
-      if (last_char == '/') {       // comment
-        while (last_char != '\n') { // skip comment
-          curr_index++;
-          last_char = buffer[curr_index];
-        }
-        continue;
-      } else { // Division
-        curr_index--;
-        token_t *new_token = malloc(sizeof(token_t));
-        new_token->type = operator;
-        new_token->value = "/";
-        list_push_back(token_list, new_token);
-        continue;
-      }
-    }
-    // operator
-    if (last_char == '+' || last_char == '-' || last_char == '*') {
-      char *str_value = malloc(2);
-      strcpy(str_value, (char[2]){last_char, '\0'});
-      token_t *new_token = malloc(sizeof(token_t));
-      new_token->type = operator;
       new_token->value = str_value;
       list_push_back(token_list, new_token);
       continue;
