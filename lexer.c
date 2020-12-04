@@ -89,6 +89,19 @@ list *lexer(FILE *fp) {
       new_token->value = "!";
       list_push_back(token_list, new_token);
       continue;
+    case '=':
+      new_token = malloc(sizeof(token_t));
+      char peek = buffer[curr_index + 1];
+      if (peek == '=') {
+        curr_index++;
+        new_token->type = operator;
+        new_token->value = "==";
+      } else {
+        new_token->type = assign;
+        new_token->value = "=";
+      }
+      list_push_back(token_list, new_token);
+      continue;
     }
 
     // identifier and keyword
@@ -105,6 +118,7 @@ list *lexer(FILE *fp) {
         curr_index++;
         last_char = buffer[curr_index];
       }
+      curr_index--;
       str_index++;
       str_value[str_index] = '\0';
       int c = keyword_check(str_value);
@@ -170,25 +184,6 @@ list *lexer(FILE *fp) {
       new_token->value = str_value;
       list_push_back(token_list, new_token);
       continue;
-    }
-    // == or =
-    if (last_char == '=') {
-      curr_index++;
-      last_char = buffer[curr_index];
-      if (last_char == '=') {
-        token_t *new_token = malloc(sizeof(token_t));
-        new_token->type = operator;
-        new_token->value = "==";
-        list_push_back(token_list, new_token);
-        continue;
-      } else {
-        curr_index--;
-        token_t *new_token = malloc(sizeof(token_t));
-        new_token->type = operator;
-        new_token->value = "=";
-        list_push_back(token_list, new_token);
-        continue;
-      }
     }
     // "string"
     if (last_char == '\"') {

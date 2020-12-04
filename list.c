@@ -13,19 +13,24 @@ void list_free(list *list) {
   // TODO: free list
 }
 
+struct node *new_node(void *data) {
+    struct node *new_node = malloc(sizeof(struct node));
+    new_node->data = data;
+    return new_node;
+}
+
 void list_push(list *list, void *data) {
   if (list == NULL) {
     fprintf(stderr, "list_push: list not created\n");
     exit(-1);
   }
-  struct node *new_node = malloc(sizeof(struct node));
-  new_node->data = data;
+  struct node *n = new_node(data);
 
-  new_node->next = list->head;
+  n->next = list->head;
   if (list->head == NULL) {
-    list->head = list->tail = new_node;
+    list->head = list->tail = n;
   }
-  list->head = new_node;
+  list->head = n;
 }
 
 void list_push_back(list *list, void *data) {
@@ -33,24 +38,21 @@ void list_push_back(list *list, void *data) {
     fprintf(stderr, "list_push: list not created\n");
     exit(-1);
   }
-  struct node *new_node = malloc(sizeof(struct node));
-  new_node->data = data;
+  struct node *n = new_node(data);
 
-  new_node->next = NULL;
+  n->next = NULL;
   if (list->tail == NULL) {
-    list->head = list->tail = new_node;
+    list->head = list->tail = n;
     return;
   }
-  list->tail->next = new_node;
-  list->tail = new_node;
+  list->tail->next = n;
+  list->tail = n;
 }
 
 void *list_pop(list *list) {
-  struct node *popped_data = list->head;
-  list->head = popped_data->next;
-  popped_data->next = NULL;
-
-  return popped_data;
+  struct node *data = list->head;
+  list->head = data->next;
+  return data->data;
 }
 
 void list_print(list *list, void (*print)(void *)) {
