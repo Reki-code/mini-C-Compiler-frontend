@@ -106,6 +106,7 @@ struct expr_ast {
   union {
     number_ast_t *number_ast;
     unary_operator_ast_t *unary_operator_ast;
+    binary_operator_ast_t *binary_operator_ast;
   };
   int u;
 };
@@ -125,6 +126,12 @@ expr_ast_t *new_expr_ast_w_unary(unary_operator_ast_t *unary_operator_ast) {
   expr_ast->u = 1;
   return expr_ast;
 }
+expr_ast_t *new_expr_ast_w_binary(binary_operator_ast_t *binary_operator_ast) {
+  expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
+  expr_ast->binary_operator_ast = binary_operator_ast;
+  expr_ast->u = 2;
+  return expr_ast;
+}
 
 void expr_print(expr_ast_t *expr_ast, int level) {
   print_space(level);
@@ -135,6 +142,9 @@ void expr_print(expr_ast_t *expr_ast, int level) {
     break;
   case 1:
     unary_operator_print(expr_ast->unary_operator_ast, level + 1);
+    break;
+  case 2:
+    binary_operator_print(expr_ast->binary_operator_ast, level + 1);
     break;
   }
 }

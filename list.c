@@ -55,6 +55,10 @@ void *list_pop(list *list) {
   return data->data;
 }
 
+void *list_peek(list *list) {
+  return list->head->data;
+}
+
 void list_print(list *list, void (*print)(void *)) {
   struct node *curr = list->head;
   while (curr != NULL) {

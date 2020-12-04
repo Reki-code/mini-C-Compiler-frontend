@@ -20,6 +20,8 @@ void list_push_back(list *list, void *data);
 
 void *list_pop(list *list);
 
+void *list_peek(list *list);
+
 void list_print(list *list, void (*print)(void *data));
 
 #endif
