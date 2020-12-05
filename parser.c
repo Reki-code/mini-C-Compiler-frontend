@@ -182,17 +182,17 @@ statement_ast_t *parse_statement(list *tokens) {
   token_t *tok;
   statement_ast_t *statement = new_statement_ast();
   tok = list_peek(tokens);
-  if (tok->type == return_k) { // "return" <exp> ";"
+  if (tok->type == return_k) { // "return" <exp>
     list_pop(tokens);          // pop "return"
     expr_ast_t *expr_ast = parse_expr(tokens);
     return_ast_t *return_ast = new_return_ast(expr_ast);
     statement_ast_init_w_return(statement, return_ast);
-  } else if (tok->type == int_k) { // "int" <id> [ = <exp>] ";"
+  } else if (tok->type == int_k) { // "int" <id> [ = <exp>]
     list_pop(tokens);              // pop "int"
     identifier_ast_t *identifier = parse_identifier(tokens); // <id>
     expr_ast_t *expr_ast = NULL;
     tok = list_peek(tokens);
-    if (tok->type == assign) { //  [ = <exp>] ";"
+    if (tok->type == assign) { //  [ = <exp>]
       list_pop(tokens);        // pop "="
       expr_ast = parse_expr(tokens);
     }
@@ -202,7 +202,7 @@ statement_ast_t *parse_statement(list *tokens) {
     expr_ast_t *expr_ast = parse_expr(tokens);
     statement_ast_init_w_expr(statement, expr_ast);
   }
-  tok = list_pop(tokens);
+  tok = list_pop(tokens); // pop ";"
   if (tok->type != semicolon) {
     fprintf(stderr, "%s\n", "parse_statement: need ;");
   }
