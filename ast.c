@@ -190,11 +190,19 @@ expr_ast_t *new_expr_ast_w_conditional(conditional_ast_t *conditional_ast) {
   expr_ast->u = 5;
   return expr_ast;
 }
+expr_ast_t *new_null_expr() {
+  expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
+  expr_ast->u = -1;
+  return expr_ast;
+}
 
 void expr_print(expr_ast_t *expr_ast, int level) {
   print_space(level);
   printf("求值表达式：\n");
   switch (expr_ast->u) {
+  case -1:
+    print_space(level + 1);
+    printf("空语句");
   case 0:
     number_print(expr_ast->number_ast, level + 1);
     break;
@@ -324,11 +332,166 @@ void compound_ast_print(compound_ast_t *compound_ast, int level) {
   }
 }
 
+// For(exp option, exp, exp option, statement) // initial expression, condition,
+// post-expression, body
+typedef struct for_ast {
+  expr_ast_t *initial; // option
+  expr_ast_t *condition;
+  expr_ast_t *post; // option
+  statement_ast_t *body;
+} for_ast_t;
+for_ast_t *new_for_ast() {
+  for_ast_t *for_ast = malloc(sizeof(for_ast_t));
+  for_ast->initial = NULL;
+  for_ast->condition = NULL;
+  for_ast->post = NULL;
+  for_ast->body = NULL;
+  return for_ast;
+}
+void for_ast_set_initial(for_ast_t *for_ast, expr_ast_t *initial) {
+  for_ast->initial = initial;
+}
+void for_ast_set_condition(for_ast_t *for_ast, expr_ast_t *condition) {
+  for_ast->condition = condition;
+}
+void for_ast_set_post(for_ast_t *for_ast, expr_ast_t *post) {
+  for_ast->post = post;
+}
+void for_ast_set_body(for_ast_t *for_ast, statement_ast_t *body) {
+  for_ast->body = body;
+}
+void for_ast_print(for_ast_t *for_ast, int level) {
+  print_space(level);
+  printf("for语句：\n");
+  if (for_ast->initial != NULL) {
+    print_space(level);
+    printf("初始化：\n");
+    expr_print(for_ast->initial, level + 1);
+  }
+  print_space(level);
+  printf("循环条件：\n");
+  expr_print(for_ast->condition, level + 1);
+  if (for_ast->post != NULL) {
+    print_space(level);
+    printf("更新语句：\n");
+    expr_print(for_ast->post, level + 1);
+  }
+  print_space(level);
+  printf("循环体：\n");
+  statement_print(for_ast->body, level + 1);
+}
+
+// ForDecl(declaration, exp, exp option, statement) // initial declaration,
+// condition, post-expression, body
+typedef struct for_decl_ast {
+  assign_ast_t *initial;
+  expr_ast_t *condition;
+  expr_ast_t *post; // option
+  statement_ast_t *body;
+} for_decl_ast_t;
+for_decl_ast_t *new_for_decl_ast() {
+  for_decl_ast_t *for_decl_ast = malloc(sizeof(for_decl_ast_t));
+  for_decl_ast->initial = NULL;
+  for_decl_ast->condition = NULL;
+  for_decl_ast->post = NULL;
+  for_decl_ast->body = NULL;
+  return for_decl_ast;
+}
+void for_decl_set_initial(for_decl_ast_t *for_decl_ast, assign_ast_t *initial) {
+  for_decl_ast->initial = initial;
+}
+void for_decl_set_condition(for_decl_ast_t *for_decl_ast,
+                            expr_ast_t *condition) {
+  for_decl_ast->condition = condition;
+}
+void for_decl_set_post(for_decl_ast_t *for_decl_ast, expr_ast_t *post) {
+  for_decl_ast->post = post;
+}
+void for_decl_set_body(for_decl_ast_t *for_decl_ast, statement_ast_t *body) {
+  for_decl_ast->body = body;
+}
+void for_decl_ast_print(for_decl_ast_t *for_decl_ast, int level) {
+  print_space(level);
+  printf("for语句：\n");
+  print_space(level);
+  printf("初始化：\n");
+  assign_print(for_decl_ast->initial, level + 1);
+  print_space(level);
+  printf("循环条件：\n");
+  expr_print(for_decl_ast->condition, level + 1);
+  if (for_decl_ast->post != NULL) {
+    print_space(level);
+    printf("更新语句：\n");
+    expr_print(for_decl_ast->post, level + 1);
+  }
+  print_space(level);
+  printf("循环体：\n");
+  statement_print(for_decl_ast->body, level + 1);
+}
+
+// While(expression, statement) // condition, body
+typedef struct while_ast {
+  expr_ast_t *condition;
+  statement_ast_t *body;
+} while_ast_t;
+while_ast_t *new_while_ast() {
+  while_ast_t *while_ast = malloc(sizeof(while_ast_t));
+  return while_ast;
+}
+void while_ast_set_condition(while_ast_t *while_ast, expr_ast_t *condition) {
+  while_ast->condition = condition;
+}
+void while_ast_set_body(while_ast_t *while_ast, statement_ast_t *body) {
+  while_ast->body = body;
+}
+void while_ast_print(while_ast_t *while_ast, int level) {
+  print_space(level);
+  printf("while循环：\n");
+  print_space(level);
+  printf("条件：\n");
+  expr_print(while_ast->condition, level + 1);
+  print_space(level);
+  printf("循环体：\n");
+  statement_print(while_ast->body, level + 1);
+}
+
+// Do(statement, expression) // body, condition
+typedef struct do_ast {
+  statement_ast_t *body;
+  expr_ast_t *condition;
+} do_ast_t;
+do_ast_t *new_do_ast() {
+  do_ast_t *do_ast = malloc(sizeof(do_ast_t));
+  return do_ast;
+}
+void do_ast_set_body(do_ast_t *do_ast, statement_ast_t *body) {
+  do_ast->body = body;
+}
+void do_ast_set_condition(do_ast_t *do_ast, expr_ast_t *condition) {
+  do_ast->condition = condition;
+}
+void do_ast_print(do_ast_t *do_ast, int level) {
+  print_space(level);
+  printf("do循环：\n");
+  print_space(level);
+  printf("条件：\n");
+  expr_print(do_ast->condition, level + 1);
+  print_space(level);
+  printf("循环体：\n");
+  statement_print(do_ast->body, level + 1);
+}
+
 // statement = Return(exp)
 //           | Declare(variable, exp option)
-//           | Exp(exp)
+//           | Exp(exp option)
 //           | If(expr, statement, statement option)
 //           | Compound(block_item list)
+//           | For(exp option, exp option, statement)
+//           | ForDecl(assign, exp, exp option, statement)
+//           | While(expression, statement)
+//           | Do(statement, expression)
+//           | Break
+//           | Continue
 typedef struct statement_ast {
   union {
     return_ast_t *return_ast;
@@ -336,6 +499,11 @@ typedef struct statement_ast {
     expr_ast_t *expr_ast;
     if_ast_t *if_ast;
     compound_ast_t *compound_ast;
+
+    for_ast_t *for_ast;
+    for_decl_ast_t *for_decl_ast;
+    while_ast_t *while_ast;
+    do_ast_t *do_ast;
   };
   int u;
 } statement_ast_t;
@@ -363,10 +531,37 @@ void statement_ast_init_w_if(statement_ast_t *statement_ast, if_ast_t *if_ast) {
   statement_ast->if_ast = if_ast;
   statement_ast->u = 3;
 }
-void statement_ast_init_w_compound(statement_ast_t *statement_ast, compound_ast_t *compound_ast) {
+void statement_ast_init_w_compound(statement_ast_t *statement_ast,
+                                   compound_ast_t *compound_ast) {
   statement_ast->compound_ast = compound_ast;
   statement_ast->u = 4;
 }
+void statement_ast_init_w_for(statement_ast_t *statement_ast,
+                              for_ast_t *for_ast) {
+  statement_ast->for_ast = for_ast;
+  statement_ast->u = 5;
+}
+void statement_ast_init_w_for_decl(statement_ast_t *statement_ast,
+                                   for_decl_ast_t *for_decl_ast) {
+  statement_ast->for_decl_ast = for_decl_ast;
+  statement_ast->u = 6;
+}
+void statement_ast_init_w_while(statement_ast_t *statement_ast,
+                                while_ast_t *while_ast) {
+  statement_ast->while_ast = while_ast;
+  statement_ast->u = 7;
+}
+void statement_ast_init_w_do(statement_ast_t *statement_ast, do_ast_t *do_ast) {
+  statement_ast->do_ast = do_ast;
+  statement_ast->u = 8;
+}
+void statement_ast_init_w_break(statement_ast_t *statement_ast) {
+  statement_ast->u = 9;
+}
+void statement_ast_init_w_continue(statement_ast_t *statement_ast) {
+  statement_ast->u = 10;
+}
+
 void statement_print(statement_ast_t *statement_ast, int level) {
   print_space(level);
   printf("语句：\n");
@@ -385,6 +580,26 @@ void statement_print(statement_ast_t *statement_ast, int level) {
     break;
   case 4:
     compound_ast_print(statement_ast->compound_ast, level + 1);
+    break;
+  case 5:
+    for_ast_print(statement_ast->for_ast, level + 1);
+    break;
+  case 6:
+    for_decl_ast_print(statement_ast->for_decl_ast, level + 1);
+    break;
+  case 7:
+    while_ast_print(statement_ast->while_ast, level + 1);
+    break;
+  case 8:
+    do_ast_print(statement_ast->do_ast, level + 1);
+    break;
+  case 9:
+    print_space(level + 1);
+    printf("break语句\n");
+    break;
+  case 10:
+    print_space(level + 1);
+    printf("continue语句\n");
     break;
   }
 }
