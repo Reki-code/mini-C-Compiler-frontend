@@ -6,8 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *keyword_array[] = {"int", "return", "if", "else"};
-type_t keyword_type[] = {int_k, return_k, if_k, else_k};
+char *keyword_array[] = {"int",   "return", "if",    "else",    "for",
+                         "while", "do",     "break", "continue"};
+type_t keyword_type[] = {int_k,   return_k, if_k,    else_k,    for_k,
+                         while_k, do_k,     break_k, continue_k};
 int keyword_len = sizeof(keyword_array) / sizeof(char *);
 int keyword_check(char *string) {
   for (int i = 0; i < keyword_len; i++) {
@@ -96,7 +98,6 @@ list *lexer(FILE *fp) {
       new_token->value = "?";
       list_push_back(token_list, new_token);
       continue;
-
     case '!':
       new_token = malloc(sizeof(token_t));
       peek = buffer[curr_index + 1];
