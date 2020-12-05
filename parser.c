@@ -17,6 +17,7 @@
 <statement> ::= "return" <exp> ";"
               | <exp> ";"
               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
+              | "{" { <block-item> }"}"
 <exp> ::= <id> "=" <exp> | <conditional-exp>
 <conditional-exp> ::= <logical-or-exp> [ "?" <exp> ":" <conditional-exp> ]
 <logical-or-exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
@@ -196,7 +197,7 @@ expr_ast_t *parse_expr(list *tokens) {
   if (peek_tok->type == assign) { // <id> "=" <exp>
     list_push(tokens, tok);
     identifier_ast_t *identifier_ast = parse_identifier(tokens); // <id>
-    list_pop(tokens); // pop "="
+    list_pop(tokens);                                            // pop "="
     expr_ast_t *assign_expr = parse_expr(tokens);
     assign_ast_t *assign_ast = new_assign_ast(identifier_ast, assign_expr);
     expr_ast = new_expr_ast_w_assign(assign_ast);
@@ -207,9 +208,12 @@ expr_ast_t *parse_expr(list *tokens) {
   return expr_ast;
 }
 
+block_item_ast_t *parse_block_item(list *tokens);
+
 // <statement> ::= "return" <exp> ";"
 //               | <exp> ";"
 //               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
+//               | "{" { <block-item> } "}
 statement_ast_t *parse_statement(list *tokens) {
   token_t *tok;
   statement_ast_t *statement = new_statement_ast();
@@ -245,6 +249,17 @@ statement_ast_t *parse_statement(list *tokens) {
       if_ast_add_else_branch(if_ast, else_statement);
     }
     statement_ast_init_w_if(statement, if_ast);
+  } else if (tok->type == open_brace) { // "{" { <block-item> } "}"
+    list_pop(tokens);                   // pop "{"
+    compound_ast_t *compound_ast = new_compound_ast();
+    tok = list_peek(tokens);
+    while (tok->type != close_brace) {
+      block_item_ast_t *block_item_ast = parse_block_item(tokens);
+      compound_add_block_item(compound_ast, block_item_ast);
+      tok = list_peek(tokens);
+    }
+    list_pop(tokens); // pop "}"
+    statement_ast_init_w_compound(statement, compound_ast);
   } else { // <exp> ";"
     expr_ast_t *expr_ast = parse_expr(tokens);
     statement_ast_init_w_expr(statement, expr_ast);

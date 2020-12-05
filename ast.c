@@ -298,14 +298,44 @@ void if_ast_print(if_ast_t *if_ast, int level) {
   }
 }
 
-// statement = Return(exp) | Declare(variable, exp option)
-//                         | Exp(exp) | If(expr, statement, statement option)
+struct block_item_ast;
+typedef struct block_item_ast block_item_ast_t;
+void block_item_print(block_item_ast_t *block_item_ast, int level);
+
+typedef struct compound_ast {
+  list *block_item_list;
+} compound_ast_t;
+compound_ast_t *new_compound_ast() {
+  compound_ast_t *compound_ast = malloc(sizeof(compound_ast_t));
+  compound_ast->block_item_list = list_create(NULL);
+  return compound_ast;
+}
+void compound_add_block_item(compound_ast_t *compound_ast,
+                             block_item_ast_t *block_item_ast) {
+  list_push_back(compound_ast->block_item_list, block_item_ast);
+}
+void compound_ast_print(compound_ast_t *compound_ast, int level) {
+  print_space(level);
+  printf("复合语句：\n");
+  block_item_ast_t *block_item = list_pop(compound_ast->block_item_list);
+  while (block_item != NULL) {
+    block_item_print(block_item, level + 1);
+    block_item = list_pop(compound_ast->block_item_list);
+  }
+}
+
+// statement = Return(exp)
+//           | Declare(variable, exp option)
+//           | Exp(exp)
+//           | If(expr, statement, statement option)
+//           | Compound(block_item list)
 typedef struct statement_ast {
   union {
     return_ast_t *return_ast;
     assign_ast_t *assign_ast;
     expr_ast_t *expr_ast;
     if_ast_t *if_ast;
+    compound_ast_t *compound_ast;
   };
   int u;
 } statement_ast_t;
@@ -333,6 +363,10 @@ void statement_ast_init_w_if(statement_ast_t *statement_ast, if_ast_t *if_ast) {
   statement_ast->if_ast = if_ast;
   statement_ast->u = 3;
 }
+void statement_ast_init_w_compound(statement_ast_t *statement_ast, compound_ast_t *compound_ast) {
+  statement_ast->compound_ast = compound_ast;
+  statement_ast->u = 4;
+}
 void statement_print(statement_ast_t *statement_ast, int level) {
   print_space(level);
   printf("语句：\n");
@@ -348,6 +382,9 @@ void statement_print(statement_ast_t *statement_ast, int level) {
     break;
   case 3:
     if_ast_print(statement_ast->if_ast, level + 1);
+    break;
+  case 4:
+    compound_ast_print(statement_ast->compound_ast, level + 1);
     break;
   }
 }
