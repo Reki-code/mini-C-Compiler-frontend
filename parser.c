@@ -167,9 +167,16 @@ expr_ast_t *parse_expr(list *tokens) {
   expr_ast_t *expr_ast;
   token_t *tok = list_peek(tokens);
   if (tok->type == identifier) {
-    identifier_ast_t *identifier_ast = parse_identifier(tokens);
-    expr_ast = new_expr_ast_w_identifier(identifier_ast);
-  } else {
+    token_t *id = list_pop(tokens);
+    token_t *ass = list_peek(tokens);
+    list_push(tokens, id);
+    if (ass->type == assign) { // <id> "=" <exp>
+      identifier_ast_t *identifier_ast = parse_identifier(tokens);
+      expr_ast = new_expr_ast_w_identifier(identifier_ast);
+    } else { //// <logical-or-exp>
+      expr_ast = parse_logical_or_expr(tokens);
+    }
+  } else { // <logical-or-exp>
     expr_ast = parse_logical_or_expr(tokens);
   }
   return expr_ast;
