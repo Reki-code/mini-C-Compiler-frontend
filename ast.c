@@ -81,14 +81,18 @@ typedef struct binary_operator_ast {
   expr_ast_t *right_expr;
 } binary_operator_ast_t;
 
-binary_operator_ast_t *new_binary_operator(char *operator, expr_ast_t *left_expr, expr_ast_t *right_expr) {
-  binary_operator_ast_t *binary_operator_ast = malloc(sizeof(binary_operator_ast_t));
+binary_operator_ast_t *new_binary_operator(char *operator,
+                                           expr_ast_t * left_expr,
+                                           expr_ast_t * right_expr) {
+  binary_operator_ast_t *binary_operator_ast =
+      malloc(sizeof(binary_operator_ast_t));
   binary_operator_ast->operator_str = operator;
   binary_operator_ast->left_expr = left_expr;
   binary_operator_ast->right_expr = right_expr;
   return binary_operator_ast;
 }
-void binary_operator_print(binary_operator_ast_t *binary_operator_ast, int level) {
+void binary_operator_print(binary_operator_ast_t *binary_operator_ast,
+                           int level) {
   print_space(level);
   printf("二元运算：\n");
   print_space(level);
@@ -101,12 +105,19 @@ void binary_operator_print(binary_operator_ast_t *binary_operator_ast, int level
   expr_print(binary_operator_ast->right_expr, level + 1);
 }
 
-// expr  = Expr(int) | unOp(operator, expr) | BinOp(binary_operator, exp, exp)
+struct assign_ast;
+typedef struct assign_ast assign_ast_t;
+void assign_print(assign_ast_t *assign_ast, int level);
+
+// expr  = Number(int) | unOp(operator, expr) |
+// BinOp(binary_operator, exp, exp)| Assign(string, exp) | identifier(string)
 struct expr_ast {
   union {
     number_ast_t *number_ast;
     unary_operator_ast_t *unary_operator_ast;
     binary_operator_ast_t *binary_operator_ast;
+    assign_ast_t *assign_ast;
+    identifier_ast_t *identifier_ast;
   };
   int u;
 };
@@ -132,6 +143,18 @@ expr_ast_t *new_expr_ast_w_binary(binary_operator_ast_t *binary_operator_ast) {
   expr_ast->u = 2;
   return expr_ast;
 }
+expr_ast_t *new_expr_ast_w_assign(assign_ast_t *assign_ast) {
+  expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
+  expr_ast->assign_ast = assign_ast;
+  expr_ast->u = 3;
+  return expr_ast;
+}
+expr_ast_t *new_expr_ast_w_identifier(identifier_ast_t *identifier) {
+  expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
+  expr_ast->identifier_ast = identifier;
+  expr_ast->u = 4;
+  return expr_ast;
+}
 
 void expr_print(expr_ast_t *expr_ast, int level) {
   print_space(level);
@@ -145,6 +168,9 @@ void expr_print(expr_ast_t *expr_ast, int level) {
     break;
   case 2:
     binary_operator_print(expr_ast->binary_operator_ast, level + 1);
+    break;
+  case 3:
+    assign_print(expr_ast->assign_ast, level + 1);
     break;
   }
 }
@@ -171,7 +197,7 @@ void return_print(return_ast_t *return_ast, int level) {
 // assign
 typedef struct assign_ast {
   identifier_ast_t *identifier_ast;
-  expr_ast_t *expr_ast;
+  expr_ast_t *expr_ast; // option
 } assign_ast_t;
 
 void assign_ast_init(assign_ast_t *assign_ast, identifier_ast_t *identifier_ast,
@@ -188,14 +214,20 @@ void assign_print(assign_ast_t *assign_ast, int level) {
   print_space(level);
   printf("赋值表达式：\n");
   identifier_print(assign_ast->identifier_ast, level + 1);
-  expr_print(assign_ast->expr_ast, level + 1);
+  if (assign_ast->expr_ast == NULL) {
+    print_space(level);
+    printf("%s\n", "变量未初始化");
+  } else {
+    expr_print(assign_ast->expr_ast, level + 1);
+  }
 }
 
-// statement = Return(exp) | Assign(variable, exp)
+// statement = Return(exp) | Declare(variable, exp option) | Exp(exp)
 typedef struct statement_ast {
   union {
     return_ast_t *return_ast;
     assign_ast_t *assign_ast;
+    expr_ast_t *expr_ast;
   };
   int u;
 } statement_ast_t;
@@ -214,6 +246,11 @@ void statement_ast_init_w_assign(statement_ast_t *statement_ast,
   statement_ast->assign_ast = assign_ast;
   statement_ast->u = 1;
 }
+void statement_ast_init_w_expr(statement_ast_t *statement_ast,
+                               expr_ast_t *expr_ast) {
+  statement_ast->expr_ast = expr_ast;
+  statement_ast->u = 2;
+}
 void statement_print(statement_ast_t *statement_ast, int level) {
   print_space(level);
   printf("语句：\n");
@@ -224,29 +261,31 @@ void statement_print(statement_ast_t *statement_ast, int level) {
   case 1:
     assign_print(statement_ast->assign_ast, level + 1);
     break;
+  case 2:
+    expr_print(statement_ast->expr_ast, level + 1);
+    break;
   }
 }
 
-// function declaration = Function(id, statement)
+// function declaration = Function(id, statement list)
 typedef struct function_declaration_ast {
   identifier_ast_t *identifier;
-  statement_ast_t *statement;
+  // statement_ast_t *statement;
+  list *statements;
 } function_declaration_ast_t;
 
-void function_declaration_ast_init(
-    function_declaration_ast_t *function_declaration_ast,
-    identifier_ast_t *identifier_ast, statement_ast_t *statement_ast) {
-  function_declaration_ast->identifier = identifier_ast;
-  function_declaration_ast->statement = statement_ast;
-}
 function_declaration_ast_t *
-new_function_declaration_ast(identifier_ast_t *identifier_ast,
-                             statement_ast_t *statementa) {
+new_function_declaration_ast(identifier_ast_t *identifier_ast) {
   function_declaration_ast_t *function_declaration =
       malloc(sizeof(function_declaration_ast_t));
-  function_declaration_ast_init(function_declaration, identifier_ast,
-                                statementa);
+  function_declaration->identifier = identifier_ast;
+  function_declaration->statements = list_create(NULL);
   return function_declaration;
+}
+void function_declaration_add_statement(
+    function_declaration_ast_t *function_declaration_ast,
+    statement_ast_t *statement_ast) {
+  list_push_back(function_declaration_ast->statements, statement_ast);
 }
 void function_declaration_print(
     function_declaration_ast_t *function_declaration_ast, int level) {
@@ -257,7 +296,12 @@ void function_declaration_print(
   identifier_print(function_declaration_ast->identifier, level + 1);
   print_space(level);
   printf("函数体\n");
-  statement_print(function_declaration_ast->statement, level + 1);
+  statement_ast_t *statement = list_pop(function_declaration_ast->statements);
+  // statement_print(statement, level + 1);
+  while (statement != NULL) {
+    statement_print(statement, level + 1);
+    statement = list_pop(function_declaration_ast->statements);
+  }
 }
 
 // program = Program(function_declaration)

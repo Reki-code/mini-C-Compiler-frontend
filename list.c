@@ -16,6 +16,7 @@ void list_free(list *list) {
 struct node *new_node(void *data) {
     struct node *new_node = malloc(sizeof(struct node));
     new_node->data = data;
+    new_node->next = NULL;
     return new_node;
 }
 
@@ -51,6 +52,9 @@ void list_push_back(list *list, void *data) {
 
 void *list_pop(list *list) {
   struct node *data = list->head;
+  if (list->head == NULL) {
+    return NULL;
+  }
   list->head = data->next;
   return data->data;
 }
