@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *keyword_array[] = {"int", "return"};
-type_t keyword_type[] = {int_k, return_k};
+char *keyword_array[] = {"int", "return", "if", "else"};
+type_t keyword_type[] = {int_k, return_k, if_k, else_k};
 int keyword_len = sizeof(keyword_array) / sizeof(char *);
 int keyword_check(char *string) {
   for (int i = 0; i < keyword_len; i++) {
@@ -84,6 +84,19 @@ list *lexer(FILE *fp) {
       new_token->value = "~";
       list_push_back(token_list, new_token);
       continue;
+    case ':':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = colon;
+      new_token->value = ":";
+      list_push_back(token_list, new_token);
+      continue;
+    case '?':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = question_mark;
+      new_token->value = "?";
+      list_push_back(token_list, new_token);
+      continue;
+
     case '!':
       new_token = malloc(sizeof(token_t));
       peek = buffer[curr_index + 1];
@@ -171,19 +184,19 @@ list *lexer(FILE *fp) {
       }
       list_push_back(token_list, new_token);
       continue;
-      case '>':
-        new_token = malloc(sizeof(token_t));
-        peek = buffer[curr_index + 1];
-        if (peek == '=') { // ">="
-          curr_index++;
-          new_token->type = greater_than_or_equal;
-          new_token->value = ">=";
-        } else { // "<"
-          new_token->type = greater_than;
-          new_token->value = ">";
-        }
-        list_push_back(token_list, new_token);
-        continue;
+    case '>':
+      new_token = malloc(sizeof(token_t));
+      peek = buffer[curr_index + 1];
+      if (peek == '=') { // ">="
+        curr_index++;
+        new_token->type = greater_than_or_equal;
+        new_token->value = ">=";
+      } else { // "<"
+        new_token->type = greater_than;
+        new_token->value = ">";
+      }
+      list_push_back(token_list, new_token);
+      continue;
     }
 
     // identifier and keyword
