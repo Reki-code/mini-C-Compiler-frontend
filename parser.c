@@ -17,7 +17,8 @@
 <statement> ::= "return" <exp> ";"
               | <exp> ";"
               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
-<exp> ::= <id> "=" <exp> | <logical-or-exp>
+<exp> ::= <id> "=" <exp> | <conditional-exp>
+<conditional-exp> ::= <logical-or-exp> [ "?" <exp> ":" <conditional-exp> ]
 <logical-or-exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
 <equality-exp> ::= <relational-exp> { ("!=" | "==") <relational-exp> }
 <relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" | ">=") <additive-exp> }
@@ -27,17 +28,17 @@
 <unary_op> ::= "!" | "~" | "-"
 */
 
-expr_ast_t *parse_additive_expr(list *tokens);
+expr_ast_t *parse_expr(list *tokens);
 
 // <factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int> | <id>
 expr_ast_t *parse_factor(list *tokens) {
   token_t *tok = list_pop(tokens);
   if (tok->type == open_parenthesis) {
     // <factor> ::= "(" <exp> ")"
-    expr_ast_t *expr_ast = parse_additive_expr(tokens);
+    expr_ast_t *expr_ast = parse_expr(tokens);
     tok = list_pop(tokens);
     if (tok->type != close_parenthesis) {
-      fprintf(stderr, "%s\n", "缺少 \")\"");
+      fprintf(stderr, "%s\n", "parse_factor need )");
     }
     return expr_ast;
   } else if (tok->type == negation || tok->type == logical_negation ||
@@ -164,22 +165,44 @@ identifier_ast_t *parse_identifier(list *tokens) {
   return new_identifier_ast(tok->value);
 }
 
-// <exp> ::= <id> "=" <exp> | <logical-or-exp>
+expr_ast_t *parse_expr(list *tokens);
+
+// <conditional-exp> ::= <logical-or-exp> [ "?" <exp> ":" <conditional-exp> ]
+expr_ast_t *parse_conditional(list *tokens) {
+  expr_ast_t *logical_or_expr = parse_logical_or_expr(tokens);
+  token_t *tok = list_peek(tokens);
+  if (tok->type ==
+      question_mark) { // <logical-or-exp> "?" <exp> ":" <conditional-exp>
+    list_pop(tokens);  // pop "?"
+    expr_ast_t *if_expr = parse_expr(tokens); // if branch
+    tok = list_pop(tokens);                   // pop ":"
+    if (tok->type != colon) {
+      fprintf(stderr, "%s\n", "parse_conditional: need :");
+    }
+    expr_ast_t *else_expr = parse_conditional(tokens); // else branch
+    conditional_ast_t *conditional_ast =
+        new_conditional_ast(logical_or_expr, if_expr, else_expr);
+    return new_expr_ast_w_conditional(conditional_ast);
+  } else { // <logical-or-exp>
+    return logical_or_expr;
+  }
+}
+
+// <exp> ::= <id> "=" <exp> | <conditional-exp>
 expr_ast_t *parse_expr(list *tokens) {
   expr_ast_t *expr_ast;
-  token_t *tok = list_peek(tokens);
-  if (tok->type == identifier) {
-    token_t *id = list_pop(tokens);
-    token_t *ass = list_peek(tokens);
-    list_push(tokens, id);
-    if (ass->type == assign) { // <id> "=" <exp>
-      identifier_ast_t *identifier_ast = parse_identifier(tokens);
-      expr_ast = new_expr_ast_w_identifier(identifier_ast);
-    } else { //// <logical-or-exp>
-      expr_ast = parse_logical_or_expr(tokens);
-    }
-  } else { // <logical-or-exp>
-    expr_ast = parse_logical_or_expr(tokens);
+  token_t *tok = list_pop(tokens);
+  token_t *peek_tok = list_peek(tokens);
+  if (peek_tok->type == assign) { // <id> "=" <exp>
+    list_push(tokens, tok);
+    identifier_ast_t *identifier_ast = parse_identifier(tokens); // <id>
+    list_pop(tokens); // pop "="
+    expr_ast_t *assign_expr = parse_expr(tokens);
+    assign_ast_t *assign_ast = new_assign_ast(identifier_ast, assign_expr);
+    expr_ast = new_expr_ast_w_assign(assign_ast);
+  } else { // <conditional-exp>
+    list_push(tokens, tok);
+    expr_ast = parse_conditional(tokens);
   }
   return expr_ast;
 }
@@ -275,15 +298,15 @@ function_declaration_ast_t *parse_function_declaration(list *tokens) {
   identifier_ast_t *identifier_ast = parse_identifier(tokens); // <id>
   tok = list_pop(tokens);                                      // "("
   if (tok->type != open_parenthesis) {
-    fprintf(stderr, "%s\n", "缺少 \"(\"");
+    fprintf(stderr, "%s\n", "parse_function_declaration need (");
   }
   tok = list_pop(tokens); // ")"
   if (tok->type != close_parenthesis) {
-    fprintf(stderr, "%s\n", "缺少 \")\"");
+    fprintf(stderr, "%s\n", "parse_function_declaration need )");
   }
   tok = list_pop(tokens); // "{
   if (tok->type != open_brace) {
-    fprintf(stderr, "%s\n", "缺少 \"{\"");
+    fprintf(stderr, "%s\n", "parse_function_declaration need {");
   }
   function_declaration_ast_t *function_declaration_ast =
       new_function_declaration_ast(identifier_ast);

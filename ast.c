@@ -105,12 +105,40 @@ void binary_operator_print(binary_operator_ast_t *binary_operator_ast,
   expr_print(binary_operator_ast->right_expr, level + 1);
 }
 
+typedef struct conditional_ast {
+  expr_ast_t *condition;
+  expr_ast_t *if_expr;
+  expr_ast_t *else_expr;
+} conditional_ast_t;
+conditional_ast_t *new_conditional_ast(expr_ast_t *condition,
+                                       expr_ast_t *if_expr,
+                                       expr_ast_t *else_expr) {
+  conditional_ast_t *conditional_ast = malloc(sizeof(conditional_ast_t));
+  conditional_ast->condition = condition;
+  conditional_ast->if_expr = if_expr;
+  conditional_ast->else_expr = else_expr;
+  return conditional_ast;
+}
+void conditional_print(conditional_ast_t *conditional_ast, int level) {
+  print_space(level);
+  printf("条件运算：\n");
+  expr_print(conditional_ast->condition, level + 1);
+  print_space(level);
+  printf("条件为真：\n");
+  expr_print(conditional_ast->if_expr, level + 1);
+  print_space(level);
+  printf("条件为假：\n");
+  expr_print(conditional_ast->else_expr, level + 1);
+}
+
 struct assign_ast;
 typedef struct assign_ast assign_ast_t;
 void assign_print(assign_ast_t *assign_ast, int level);
 
 // expr  = Number(int) | unOp(operator, expr) |
 // BinOp(binary_operator, exp, exp)| Assign(string, exp) | identifier(string)
+// | Conditional(exp, exp, exp) //the three expressions are the condition,
+// 'if' expression and 'else' expression, respectively
 struct expr_ast {
   union {
     number_ast_t *number_ast;
@@ -118,6 +146,7 @@ struct expr_ast {
     binary_operator_ast_t *binary_operator_ast;
     assign_ast_t *assign_ast;
     identifier_ast_t *identifier_ast;
+    conditional_ast_t *conditional_ast;
   };
   int u;
 };
@@ -155,6 +184,12 @@ expr_ast_t *new_expr_ast_w_identifier(identifier_ast_t *identifier) {
   expr_ast->u = 4;
   return expr_ast;
 }
+expr_ast_t *new_expr_ast_w_conditional(conditional_ast_t *conditional_ast) {
+  expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
+  expr_ast->conditional_ast = conditional_ast;
+  expr_ast->u = 5;
+  return expr_ast;
+}
 
 void expr_print(expr_ast_t *expr_ast, int level) {
   print_space(level);
@@ -171,6 +206,12 @@ void expr_print(expr_ast_t *expr_ast, int level) {
     break;
   case 3:
     assign_print(expr_ast->assign_ast, level + 1);
+    break;
+  case 4:
+    identifier_print(expr_ast->identifier_ast, level + 1);
+    break;
+  case 5:
+    conditional_print(expr_ast->conditional_ast, level + 1);
     break;
   }
 }
@@ -245,7 +286,7 @@ void if_ast_add_else_branch(if_ast_t *if_ast, statement_ast_t *else_branch) {
 }
 void if_ast_print(if_ast_t *if_ast, int level) {
   print_space(level);
-  printf("条件：\n");
+  printf("条件语句：\n");
   expr_print(if_ast->expr_ast, level + 1);
   print_space(level);
   printf("if分支：\n");
