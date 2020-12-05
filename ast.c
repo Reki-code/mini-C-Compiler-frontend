@@ -311,11 +311,45 @@ void statement_print(statement_ast_t *statement_ast, int level) {
   }
 }
 
-// function declaration = Function(id, statement list)
+// block_item = Statement(statement) | Declaration(declaration)
+typedef struct block_item_ast {
+  union {
+    statement_ast_t *statement;
+    assign_ast_t *assign_ast;
+  };
+  int u;
+} block_item_ast_t;
+block_item_ast_t *new_block_item_ast() {
+  block_item_ast_t *block_item_ast = malloc(sizeof(block_item_ast_t));
+  return block_item_ast;
+}
+void block_item_init_w_statement(block_item_ast_t *block_item_ast,
+                                 statement_ast_t *statement_ast) {
+  block_item_ast->statement = statement_ast;
+  block_item_ast->u = 0;
+}
+void block_item_init_w_assign(block_item_ast_t *block_item_ast,
+                              assign_ast_t *assign_ast) {
+  block_item_ast->assign_ast = assign_ast;
+  block_item_ast->u = 1;
+}
+void block_item_print(block_item_ast_t *block_item_ast, int level) {
+  print_space(level);
+  printf("语句块：\n");
+  switch (block_item_ast->u) {
+  case 0:
+    statement_print(block_item_ast->statement, level + 1);
+    break;
+  case 1:
+    assign_print(block_item_ast->assign_ast, level + 1);
+    break;
+  }
+}
+
+// function_declaration = Function(id, block_item list)
 typedef struct function_declaration_ast {
   identifier_ast_t *identifier;
-  // statement_ast_t *statement;
-  list *statements;
+  list *block_item_list;
 } function_declaration_ast_t;
 
 function_declaration_ast_t *
@@ -323,13 +357,13 @@ new_function_declaration_ast(identifier_ast_t *identifier_ast) {
   function_declaration_ast_t *function_declaration =
       malloc(sizeof(function_declaration_ast_t));
   function_declaration->identifier = identifier_ast;
-  function_declaration->statements = list_create(NULL);
+  function_declaration->block_item_list = list_create(NULL);
   return function_declaration;
 }
-void function_declaration_add_statement(
+void function_declaration_add_block_item(
     function_declaration_ast_t *function_declaration_ast,
-    statement_ast_t *statement_ast) {
-  list_push_back(function_declaration_ast->statements, statement_ast);
+    block_item_ast_t *block_item) {
+  list_push_back(function_declaration_ast->block_item_list, block_item);
 }
 void function_declaration_print(
     function_declaration_ast_t *function_declaration_ast, int level) {
@@ -340,11 +374,11 @@ void function_declaration_print(
   identifier_print(function_declaration_ast->identifier, level + 1);
   print_space(level);
   printf("函数体\n");
-  statement_ast_t *statement = list_pop(function_declaration_ast->statements);
-  // statement_print(statement, level + 1);
-  while (statement != NULL) {
-    statement_print(statement, level + 1);
-    statement = list_pop(function_declaration_ast->statements);
+  block_item_ast_t *block_item =
+      list_pop(function_declaration_ast->block_item_list);
+  while (block_item != NULL) {
+    block_item_print(block_item, level + 1);
+    block_item = list_pop(function_declaration_ast->block_item_list);
   }
 }
 

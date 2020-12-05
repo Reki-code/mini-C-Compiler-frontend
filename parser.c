@@ -11,10 +11,11 @@
 
 /*
 <program> ::= <function>
-<function> ::= "int" <id> "(" ")" "{" { <statement> } "}"
+<function> ::= "int" <id> "(" ")" "{" { <block-item> } "}"
+<block-item> ::= <statement> | <declaration>
+<declaration> ::= "int" <id> [ = <exp> ] ";"
 <statement> ::= "return" <exp> ";"
               | <exp> ";"
-              | "int" <id> [ = <exp> ] ";"
               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 <exp> ::= <id> "=" <exp> | <logical-or-exp>
 <logical-or-exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
@@ -185,7 +186,6 @@ expr_ast_t *parse_expr(list *tokens) {
 
 // <statement> ::= "return" <exp> ";"
 //               | <exp> ";"
-//               | "int" <id> [ = <exp> ] ";"
 //               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 statement_ast_t *parse_statement(list *tokens) {
   token_t *tok;
@@ -200,22 +200,8 @@ statement_ast_t *parse_statement(list *tokens) {
     if (tok->type != semicolon) {
       fprintf(stderr, "%s\n", "parse_statement: need ;");
     }
-  } else if (tok->type == int_k) { // "int" <id> [ = <exp>]
-    list_pop(tokens);              // pop "int"
-    identifier_ast_t *identifier = parse_identifier(tokens); // <id>
-    expr_ast_t *expr_ast = NULL;
-    tok = list_peek(tokens);
-    if (tok->type == assign) { //  [ = <exp>]
-      list_pop(tokens);        // pop "="
-      expr_ast = parse_expr(tokens);
-    }
-    assign_ast_t *assign_ast = new_assign_ast(identifier, expr_ast);
-    statement_ast_init_w_assign(statement, assign_ast);
-    tok = list_pop(tokens); // pop ";"
-    if (tok->type != semicolon) {
-      fprintf(stderr, "%s\n", "parse_statement: need ;");
-    }
-  } else if (tok->type == if_k) { // "if" "(" <exp> ")" <statement> [ "else" <statement> ]
+  } else if (tok->type ==
+             if_k) {  // "if" "(" <exp> ")" <statement> [ "else" <statement> ]
     list_pop(tokens); // pop "if"
     tok = list_pop(tokens); // pop "("
     if (tok->type != open_parenthesis) {
@@ -248,7 +234,39 @@ statement_ast_t *parse_statement(list *tokens) {
   return statement;
 }
 
-// <function> ::= "int" <id> "(" ")" "{" { <statement> } "}"
+// <declaration> ::= "int" <id> [ = <exp> ] ";"
+assign_ast_t *parse_declaration(list *tokens) {
+  token_t *tok = list_pop(tokens);                         // pop "int"
+  identifier_ast_t *identifier = parse_identifier(tokens); // <id>
+  expr_ast_t *expr_ast = NULL;
+  tok = list_peek(tokens);
+  if (tok->type == assign) { //  [ = <exp>]
+    list_pop(tokens);        // pop "="
+    expr_ast = parse_expr(tokens);
+  }
+  assign_ast_t *assign_ast = new_assign_ast(identifier, expr_ast);
+  tok = list_pop(tokens); // pop ";"
+  if (tok->type != semicolon) {
+    fprintf(stderr, "%s\n", "parse_statement: need ;");
+  }
+  return assign_ast;
+}
+
+// <block-item> ::= <statement> | <declaration>
+block_item_ast_t *parse_block_item(list *tokens) {
+  token_t *tok = list_peek(tokens);
+  block_item_ast_t *block_item_ast = new_block_item_ast();
+  if (tok->type == int_k) { // <declaration>
+    assign_ast_t *assign_ast = parse_declaration(tokens);
+    block_item_init_w_assign(block_item_ast, assign_ast);
+  } else { // <statement>
+    statement_ast_t *statement_ast = parse_statement(tokens);
+    block_item_init_w_statement(block_item_ast, statement_ast);
+  }
+  return block_item_ast;
+}
+
+// <function> ::= "int" <id> "(" ")" "{" { <block-item> } "}"
 function_declaration_ast_t *parse_function_declaration(list *tokens) {
   token_t *tok = list_pop(tokens); // pop "int"
   if (tok->type != int_k) {
@@ -270,9 +288,10 @@ function_declaration_ast_t *parse_function_declaration(list *tokens) {
   function_declaration_ast_t *function_declaration_ast =
       new_function_declaration_ast(identifier_ast);
   tok = list_peek(tokens);
-  while (tok->type != close_brace) { // { <statement> }
-    statement_ast_t *statement_ast = parse_statement(tokens);
-    function_declaration_add_statement(function_declaration_ast, statement_ast);
+  while (tok->type != close_brace) { // { <block-item> }
+    block_item_ast_t *block_item_ast = parse_block_item(tokens);
+    function_declaration_add_block_item(function_declaration_ast,
+                                        block_item_ast);
     tok = list_peek(tokens);
   }
   tok = list_pop(tokens); // "}"
