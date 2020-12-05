@@ -15,18 +15,24 @@
 <block-item> ::= <statement> | <declaration>
 <declaration> ::= "int" <id> [ = <exp> ] ";"
 <statement> ::= "return" <exp> ";"
+              | <exp-option> ";"
               | <exp> ";"
               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
               | "{" { <block-item> }"}"
-<exp> ::= <id> "=" <exp> | <conditional-exp>
-<conditional-exp> ::= <logical-or-exp> [ "?" <exp> ":" <conditional-exp> ]
-<logical-or-exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
-<equality-exp> ::= <relational-exp> { ("!=" | "==") <relational-exp> }
-<relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" | ">=") <additive-exp> }
-<additive-exp> ::= <term> { ("+" | "-") <term> }
-<term> ::= <factor> { ("*" | "/") <factor> }
-<factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int> | <id>
-<unary_op> ::= "!" | "~" | "-"
+              | "for" "(" <exp-option> ";" <exp-option> ";" <exp-option> ")"
+<statement>
+              | "for" "(" <declaration> <exp-option> ";" <exp-option> ")"
+<statement>
+              | "while" "(" <exp> ")" <statement> | "do" <statement> "while"
+<exp>
+";" | "break" ";" | "continue" ";" <exp-option> ::= <exp> | "" <exp> ::= <id>
+"=" <exp> | <conditional-exp> <conditional-exp> ::= <logical-or-exp> [ "?" <exp>
+":" <conditional-exp> ] <logical-or-exp> ::= <logical-and-exp> { "||"
+<logical-and-exp> } <equality-exp> ::= <relational-exp> { ("!=" | "==")
+<relational-exp> } <relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" |
+">=") <additive-exp> } <additive-exp> ::= <term> { ("+" | "-") <term> } <term>
+::= <factor> { ("*" | "/") <factor> } <factor> ::= "(" <exp> ")" | <unary_op>
+<factor> | <int> | <id> <unary_op> ::= "!" | "~" | "-"
 */
 
 expr_ast_t *parse_expr(list *tokens);
@@ -208,12 +214,29 @@ expr_ast_t *parse_expr(list *tokens) {
   return expr_ast;
 }
 
+// <exp-option> ::= <exp> | ""
+expr_ast_t *parse_optional_expr(list *tokens) {
+  token_t *tok = list_peek(tokens);
+  if (tok->type == close_parenthesis || tok->type == semicolon) { // ""
+    return new_null_expr();
+  } else {
+    return parse_expr(tokens);
+  }
+}
+
 block_item_ast_t *parse_block_item(list *tokens);
+assign_ast_t *parse_declaration(list *tokens);
 
 // <statement> ::= "return" <exp> ";"
-//               | <exp> ";"
-//               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
-//               | "{" { <block-item> } "}
+//              | <exp-option> ";"
+//              | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
+//              | "{" { <block-item> } "}
+//              | "for" "(" <exp-option> ";" <exp-option> ";" <exp-option> ")"
+//              <statement> | "for" "(" <declaration> <exp-option> ";"
+//              <exp-option> ")" <statement> | "while" "(" <exp> ")" <statement>
+//              | "do" <statement> "while" <exp> ";"
+//              | "break" ";"
+//              | "continue" ";"
 statement_ast_t *parse_statement(list *tokens) {
   token_t *tok;
   statement_ast_t *statement = new_statement_ast();
@@ -260,8 +283,77 @@ statement_ast_t *parse_statement(list *tokens) {
     }
     list_pop(tokens); // pop "}"
     statement_ast_init_w_compound(statement, compound_ast);
-  } else { // <exp> ";"
-    expr_ast_t *expr_ast = parse_expr(tokens);
+  } else if (tok->type == for_k) {
+    list_pop(tokens); // pop "for"
+    list_pop(tokens); // pop "("
+    tok = list_peek(tokens);
+    if (tok->type ==
+        int_k) { // <declaration> <exp-option> ";" <exp-option> ")" <statement>
+      assign_ast_t *initial = parse_declaration(tokens);
+      expr_ast_t *condition = parse_optional_expr(tokens);
+      list_pop(tokens); // pop ";"
+      expr_ast_t *post = parse_optional_expr(tokens);
+      list_pop(tokens); // pop ")"
+      statement_ast_t *body = parse_statement(tokens);
+      for_decl_ast_t *for_decl_ast = new_for_decl_ast();
+      for_decl_set_initial(for_decl_ast, initial);
+      for_decl_set_condition(for_decl_ast, condition);
+      for_decl_set_post(for_decl_ast, post);
+      for_decl_set_body(for_decl_ast, body);
+      statement_ast_init_w_for_decl(statement, for_decl_ast);
+    } else { // <exp-option> ";" <exp-option> ";" <exp-option> ")" <statement>
+      expr_ast_t *initial = parse_optional_expr(tokens);
+      list_pop(tokens); // pop ";"
+      expr_ast_t *condition = parse_optional_expr(tokens);
+      list_pop(tokens); // pop ";"
+      expr_ast_t *post = parse_optional_expr(tokens);
+      list_pop(tokens); // ")"
+      statement_ast_t *body = parse_statement(tokens);
+      for_ast_t *for_ast = new_for_ast();
+      for_ast_set_initial(for_ast, initial);
+      for_ast_set_condition(for_ast, condition);
+      for_ast_set_post(for_ast, post);
+      for_ast_set_body(for_ast, body);
+      statement_ast_init_w_for(statement, for_ast);
+    }
+  } else if (tok->type == while_k) { // "while" "(" <exp> ")" <statement>
+    list_pop(tokens);                // pop "while"
+    list_pop(tokens);                // pop "("
+    expr_ast_t *condition = parse_expr(tokens);
+    list_pop(tokens); // pop ")"
+    statement_ast_t *body = parse_statement(tokens);
+    while_ast_t *while_ast = new_while_ast();
+    while_ast_set_condition(while_ast, condition);
+    while_ast_set_body(while_ast, body);
+    statement_ast_init_w_while(statement, while_ast);
+  } else if (tok->type == do_k) { // "do" <statement> "while" <exp> ";"
+    list_pop(tokens);             // pop "do"
+    statement_ast_t *body = parse_statement(tokens);
+    list_pop(tokens); // pop "while"
+    expr_ast_t *condition = parse_expr(tokens);
+    do_ast_t *do_ast = new_do_ast();
+    do_ast_set_body(do_ast, body);
+    do_ast_set_condition(do_ast, condition);
+    statement_ast_init_w_do(statement, do_ast);
+    if (tok->type != semicolon) {
+      fprintf(stderr, "%s\n", "parse_statement: need ;");
+    }
+  } else if (tok->type == break_k) { // "break" ";"
+    list_pop(tokens);
+    statement_ast_init_w_break(statement);
+    list_pop(tokens);
+    if (tok->type != semicolon) {
+      fprintf(stderr, "%s\n", "parse_statement: need ;");
+    }
+  } else if (tok->type == continue_k) { // "continue" ";"
+    list_pop(tokens);
+    statement_ast_init_w_continue(statement);
+    list_pop(tokens);
+    if (tok->type != semicolon) {
+      fprintf(stderr, "%s\n", "parse_statement: need ;");
+    }
+  } else { // <exp-option> ";"
+    expr_ast_t *expr_ast = parse_optional_expr(tokens);
     statement_ast_init_w_expr(statement, expr_ast);
     tok = list_pop(tokens); // pop ";"
     if (tok->type != semicolon) {

@@ -202,7 +202,8 @@ void expr_print(expr_ast_t *expr_ast, int level) {
   switch (expr_ast->u) {
   case -1:
     print_space(level + 1);
-    printf("空语句");
+    printf("空语句\n");
+    break;
   case 0:
     number_print(expr_ast->number_ast, level + 1);
     break;
