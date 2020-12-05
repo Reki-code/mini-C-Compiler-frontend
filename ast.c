@@ -222,12 +222,49 @@ void assign_print(assign_ast_t *assign_ast, int level) {
   }
 }
 
-// statement = Return(exp) | Declare(variable, exp option) | Exp(exp)
+struct statement_ast;
+typedef struct statement_ast statement_ast_t;
+void statement_print(statement_ast_t *statement_ast, int level);
+
+// If(expr, statement, statement option)
+typedef struct if_ast {
+  expr_ast_t *expr_ast;
+  statement_ast_t *if_branch;
+  statement_ast_t *else_branch;
+} if_ast_t;
+
+if_ast_t *new_if_ast(expr_ast_t *expr_ast, statement_ast_t *if_branch) {
+  if_ast_t *if_ast = malloc(sizeof(if_ast_t));
+  if_ast->expr_ast = expr_ast;
+  if_ast->if_branch = if_branch;
+  if_ast->else_branch = NULL;
+  return if_ast;
+}
+void if_ast_add_else_branch(if_ast_t *if_ast, statement_ast_t *else_branch) {
+  if_ast->else_branch = else_branch;
+}
+void if_ast_print(if_ast_t *if_ast, int level) {
+  print_space(level);
+  printf("条件：\n");
+  expr_print(if_ast->expr_ast, level + 1);
+  print_space(level);
+  printf("if分支：\n");
+  statement_print(if_ast->if_branch, level + 1);
+  if (if_ast->else_branch != NULL) {
+    print_space(level);
+    printf("else分支：\n");
+    statement_print(if_ast->else_branch, level + 1);
+  }
+}
+
+// statement = Return(exp) | Declare(variable, exp option)
+//                         | Exp(exp) | If(expr, statement, statement option)
 typedef struct statement_ast {
   union {
     return_ast_t *return_ast;
     assign_ast_t *assign_ast;
     expr_ast_t *expr_ast;
+    if_ast_t *if_ast;
   };
   int u;
 } statement_ast_t;
@@ -251,6 +288,10 @@ void statement_ast_init_w_expr(statement_ast_t *statement_ast,
   statement_ast->expr_ast = expr_ast;
   statement_ast->u = 2;
 }
+void statement_ast_init_w_if(statement_ast_t *statement_ast, if_ast_t *if_ast) {
+  statement_ast->if_ast = if_ast;
+  statement_ast->u = 3;
+}
 void statement_print(statement_ast_t *statement_ast, int level) {
   print_space(level);
   printf("语句：\n");
@@ -263,6 +304,9 @@ void statement_print(statement_ast_t *statement_ast, int level) {
     break;
   case 2:
     expr_print(statement_ast->expr_ast, level + 1);
+    break;
+  case 3:
+    if_ast_print(statement_ast->if_ast, level + 1);
     break;
   }
 }

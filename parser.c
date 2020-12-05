@@ -14,7 +14,8 @@
 <function> ::= "int" <id> "(" ")" "{" { <statement> } "}"
 <statement> ::= "return" <exp> ";"
               | <exp> ";"
-              | "int" <id> [ = <exp>] ";"
+              | "int" <id> [ = <exp> ] ";"
+              | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 <exp> ::= <id> "=" <exp> | <logical-or-exp>
 <logical-or-exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
 <equality-exp> ::= <relational-exp> { ("!=" | "==") <relational-exp> }
@@ -183,8 +184,9 @@ expr_ast_t *parse_expr(list *tokens) {
 }
 
 // <statement> ::= "return" <exp> ";"
-//              | <exp> ";"
-//              | "int" <id> [ = <exp>] ";"
+//               | <exp> ";"
+//               | "int" <id> [ = <exp> ] ";"
+//               | "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 statement_ast_t *parse_statement(list *tokens) {
   token_t *tok;
   statement_ast_t *statement = new_statement_ast();
@@ -194,6 +196,10 @@ statement_ast_t *parse_statement(list *tokens) {
     expr_ast_t *expr_ast = parse_expr(tokens);
     return_ast_t *return_ast = new_return_ast(expr_ast);
     statement_ast_init_w_return(statement, return_ast);
+    tok = list_pop(tokens); // pop ";"
+    if (tok->type != semicolon) {
+      fprintf(stderr, "%s\n", "parse_statement: need ;");
+    }
   } else if (tok->type == int_k) { // "int" <id> [ = <exp>]
     list_pop(tokens);              // pop "int"
     identifier_ast_t *identifier = parse_identifier(tokens); // <id>
@@ -205,14 +211,40 @@ statement_ast_t *parse_statement(list *tokens) {
     }
     assign_ast_t *assign_ast = new_assign_ast(identifier, expr_ast);
     statement_ast_init_w_assign(statement, assign_ast);
+    tok = list_pop(tokens); // pop ";"
+    if (tok->type != semicolon) {
+      fprintf(stderr, "%s\n", "parse_statement: need ;");
+    }
+  } else if (tok->type == if_k) { // "if" "(" <exp> ")" <statement> [ "else" <statement> ]
+    list_pop(tokens); // pop "if"
+    tok = list_pop(tokens); // pop "("
+    if (tok->type != open_parenthesis) {
+      fprintf(stderr, "%s\n", "parse_statement: need (");
+    }
+    expr_ast_t *expr_ast = parse_expr(tokens);
+    tok = list_pop(tokens); // pop ")"
+    if (tok->type != close_parenthesis) {
+      fprintf(stderr, "%s\n", "parse_statement: need (");
+    }
+    // parse if branch
+    statement_ast_t *if_statement = parse_statement(tokens);
+    if_ast_t *if_ast = new_if_ast(expr_ast, if_statement);
+    tok = list_peek(tokens);
+    if (tok->type == else_k) {
+      list_pop(tokens);
+      statement_ast_t *else_statement = parse_statement(tokens);
+      if_ast_add_else_branch(if_ast, else_statement);
+    }
+    statement_ast_init_w_if(statement, if_ast);
   } else { // <exp> ";"
     expr_ast_t *expr_ast = parse_expr(tokens);
     statement_ast_init_w_expr(statement, expr_ast);
+    tok = list_pop(tokens); // pop ";"
+    if (tok->type != semicolon) {
+      fprintf(stderr, "%s\n", "parse_statement: need ;");
+    }
   }
-  tok = list_pop(tokens); // pop ";"
-  if (tok->type != semicolon) {
-    fprintf(stderr, "%s\n", "parse_statement: need ;");
-  }
+
   return statement;
 }
 
