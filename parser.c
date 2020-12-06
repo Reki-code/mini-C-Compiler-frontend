@@ -11,7 +11,9 @@
 
 /*
 <program> ::= <function>
-<function> ::= "int" <id> "(" ")" "{" { <block-item> } "}"
+<function> ::= "int" <id> "(" [ "int" <id> { "," "int" <id> } ] ")" ( "{" {
+<block-item> } "}" | ";" )
+
 <block-item> ::= <statement> | <declaration>
 <declaration> ::= "int" <id> [ = <exp> ] ";"
 <statement> ::= "return" <exp> ";"
@@ -36,13 +38,42 @@
 <relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" | ">=") <additive-exp> }
 <additive-exp> ::= <term> { ("+" | "-") <term> }
 <term> ::= <factor> { ("*" | "/") <factor> }
-<factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int> | <id>
+<factor> ::= <function-call> | "(" <exp> ")" | <unary_op> <factor> | <int> | <id>
+<function-call> ::= id "(" [ <exp> { "," <exp> } ] ")"
 <unary_op> ::= "!" | "~" | "-"
 */
 
 expr_ast_t *parse_expr(list *tokens);
 
-// <factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int> | <id>
+// <id> ::= string
+identifier_ast_t *parse_identifier(list *tokens) {
+  token_t *tok = list_pop(tokens);
+  return new_identifier_ast(tok->value);
+}
+
+// <function-call> ::= <id> "(" [ <exp> { "," <exp> } ] ")"
+function_call_ast_t *parse_function_call(list *tokens) {
+  identifier_ast_t *function_name = parse_identifier(tokens); // pop <id>
+  function_call_ast_t *function_call_ast = new_function_call_ast(function_name);
+  token_t *tok = list_pop(tokens); // pop "("
+  tok = list_peek(tokens);
+  if (tok->type != close_parenthesis) {        // [ <exp> { "," <exp> } ]
+    expr_ast_t *argument = parse_expr(tokens); // pop <exp>
+    function_call_add_argument(function_call_ast, argument);
+    tok = list_peek(tokens);
+    while (tok->type == commas) {
+      list_pop(tokens); // pop ","
+      argument = parse_expr(tokens); // pop <exp>
+      function_call_add_argument(function_call_ast, argument);
+      tok = list_peek(tokens);
+    }
+  }
+  list_pop(tokens); // pop ")"
+  return function_call_ast;
+}
+
+// <factor> ::= <function-call> | "(" <exp> ")" | <unary_op> <factor> | <int> |
+// <id>
 expr_ast_t *parse_factor(list *tokens) {
   token_t *tok = list_pop(tokens);
   if (tok->type == open_parenthesis) {
@@ -66,9 +97,16 @@ expr_ast_t *parse_factor(list *tokens) {
     number_ast_t *number = new_number_ast(num);
     return new_expr_ast_w_number(number);
   } else if (tok->type == identifier) {
-    // <facotr> ::= <id>
-    identifier_ast_t *var = new_identifier_ast(tok->value);
-    return new_expr_ast_w_identifier(var);
+    // <facotr> ::= <id> | <function-call>
+    token_t *peek_tok = list_peek(tokens);
+    if (peek_tok->type == open_parenthesis) { // <function-call>
+      list_push(tokens, tok); // push <id>
+      function_call_ast_t *func_call = parse_function_call(tokens);
+      return new_expr_ast_w_function_call(func_call);
+    } else {
+      identifier_ast_t *var = new_identifier_ast(tok->value);
+      return new_expr_ast_w_identifier(var);
+    }
   }
   fprintf(stderr, "%s\n", "parse_expr: error");
   return NULL;
@@ -169,12 +207,6 @@ expr_ast_t *parse_logical_or_expr(list *tokens) {
     tok = list_peek(tokens);
   }
   return logical_and_expr;
-}
-
-// <id> ::= string
-identifier_ast_t *parse_identifier(list *tokens) {
-  token_t *tok = list_pop(tokens);
-  return new_identifier_ast(tok->value);
 }
 
 expr_ast_t *parse_expr(list *tokens);
@@ -353,7 +385,7 @@ statement_ast_t *parse_statement(list *tokens) {
   } else if (tok->type == continue_k) { // "continue" ";"
     list_pop(tokens);
     statement_ast_init_w_continue(statement);
-    list_pop(tokens);
+    tok = list_pop(tokens);
     if (tok->type != semicolon) {
       fprintf(stderr, "%s\n", "parse_statement: need ;");
     }
@@ -382,7 +414,7 @@ assign_ast_t *parse_declaration(list *tokens) {
   assign_ast_t *assign_ast = new_assign_ast(identifier, expr_ast);
   tok = list_pop(tokens); // pop ";"
   if (tok->type != semicolon) {
-    fprintf(stderr, "%s\n", "parse_statement: need ;");
+    fprintf(stderr, "%s\n", "parse_declaration: need ;");
   }
   return assign_ast;
 }
@@ -401,35 +433,55 @@ block_item_ast_t *parse_block_item(list *tokens) {
   return block_item_ast;
 }
 
-// <function> ::= "int" <id> "(" ")" "{" { <block-item> } "}"
+// <function> ::= "int" <id> "(" [ "int" <id> { "," "int" <id> } ] ")" ( "{" {
+// <block-item> } "}" | ";" )
 function_declaration_ast_t *parse_function_declaration(list *tokens) {
   token_t *tok = list_pop(tokens); // pop "int"
   if (tok->type != int_k) {
     fprintf(stderr, "%s\n", "返回值只能为int");
   }
-  identifier_ast_t *identifier_ast = parse_identifier(tokens); // <id>
-  tok = list_pop(tokens);                                      // "("
+  identifier_ast_t *function_name = parse_identifier(tokens); // <id>
+  function_declaration_ast_t *function_declaration_ast =
+      new_function_declaration_ast(function_name);
+  tok = list_pop(tokens); // "("
   if (tok->type != open_parenthesis) {
     fprintf(stderr, "%s\n", "parse_function_declaration need (");
+  }
+  tok = list_peek(tokens);
+  if (tok->type == int_k) {
+    list_pop(tokens); // pop "int"
+    identifier_ast_t *parameter1 = parse_identifier(tokens);
+    function_declaration_add_parameter(function_declaration_ast, parameter1);
+    tok = list_peek(tokens);
+    while (tok->type == commas) {
+      list_pop(tokens); // pop ","
+      list_pop(tokens); // pop "int"
+      identifier_ast_t *parameter = parse_identifier(tokens);
+      function_declaration_add_parameter(function_declaration_ast, parameter);
+    }
   }
   tok = list_pop(tokens); // ")"
   if (tok->type != close_parenthesis) {
     fprintf(stderr, "%s\n", "parse_function_declaration need )");
   }
-  tok = list_pop(tokens); // "{
-  if (tok->type != open_brace) {
-    fprintf(stderr, "%s\n", "parse_function_declaration need {");
-  }
-  function_declaration_ast_t *function_declaration_ast =
-      new_function_declaration_ast(identifier_ast);
+  // "{" { <block-item> } "}" | ";"
   tok = list_peek(tokens);
-  while (tok->type != close_brace) { // { <block-item> }
-    block_item_ast_t *block_item_ast = parse_block_item(tokens);
-    function_declaration_add_block_item(function_declaration_ast,
-                                        block_item_ast);
+  if (tok->type == semicolon) { // ";"
+    list_pop(tokens);
+  } else {                  // "{" { <block-item> } "}"
+    tok = list_pop(tokens); // "{
+    if (tok->type != open_brace) {
+      fprintf(stderr, "%s\n", "parse_function_declaration need {");
+    }
     tok = list_peek(tokens);
+    while (tok->type != close_brace) { // { <block-item> }
+      block_item_ast_t *block_item_ast = parse_block_item(tokens);
+      function_declaration_add_block_item(function_declaration_ast,
+                                          block_item_ast);
+      tok = list_peek(tokens);
+    }
+    tok = list_pop(tokens); // "}"
   }
-  tok = list_pop(tokens); // "}"
 
   return function_declaration_ast;
 }

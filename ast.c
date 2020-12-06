@@ -131,11 +131,42 @@ void conditional_print(conditional_ast_t *conditional_ast, int level) {
   expr_print(conditional_ast->else_expr, level + 1);
 }
 
+// FunCall(string, exp list) // string is the function name
+typedef struct function_call_ast {
+  identifier_ast_t *function_name;
+  list *arguments;
+} function_call_ast_t;
+function_call_ast_t *new_function_call_ast(identifier_ast_t *function_name) {
+  function_call_ast_t *function_call_ast = malloc(sizeof(function_call_ast_t));
+  function_call_ast->function_name = function_name;
+  function_call_ast->arguments = list_create(NULL);
+  return function_call_ast;
+}
+void function_call_add_argument(function_call_ast_t *function_call_ast,
+                                expr_ast_t *argument) {
+  list_push_back(function_call_ast->arguments, argument);
+}
+void function_call_print(function_call_ast_t *function_call_ast, int level) {
+  print_space(level);
+  printf("函数调用：\n");
+  print_space(level);
+  printf("函数名\n");
+  identifier_ast_t *function_name = function_call_ast->function_name;
+  identifier_print(function_name, level + 1);
+  expr_ast_t *argument = list_pop(function_call_ast->arguments);
+  print_space(level);
+  printf("参数\n");
+  while (argument != NULL) {
+    expr_print(argument, level + 1);
+    argument = list_pop(function_call_ast->arguments);
+  }
+}
+
 struct assign_ast;
 typedef struct assign_ast assign_ast_t;
 void assign_print(assign_ast_t *assign_ast, int level);
 
-// expr  = Number(int) | unOp(operator, expr) |
+// expr  = Number(int) | unOp(operator, expr) | FunCall(id, exp list)
 // BinOp(binary_operator, exp, exp)| Assign(string, exp) | identifier(string)
 // | Conditional(exp, exp, exp) //the three expressions are the condition,
 // 'if' expression and 'else' expression, respectively
@@ -147,6 +178,7 @@ struct expr_ast {
     assign_ast_t *assign_ast;
     identifier_ast_t *identifier_ast;
     conditional_ast_t *conditional_ast;
+    function_call_ast_t *function_call_ast;
   };
   int u;
 };
@@ -190,6 +222,13 @@ expr_ast_t *new_expr_ast_w_conditional(conditional_ast_t *conditional_ast) {
   expr_ast->u = 5;
   return expr_ast;
 }
+expr_ast_t *
+new_expr_ast_w_function_call(function_call_ast_t *function_call_ast) {
+  expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
+  expr_ast->function_call_ast = function_call_ast;
+  expr_ast->u = 6;
+  return expr_ast;
+}
 expr_ast_t *new_null_expr() {
   expr_ast_t *expr_ast = malloc(sizeof(expr_ast_t));
   expr_ast->u = -1;
@@ -221,6 +260,9 @@ void expr_print(expr_ast_t *expr_ast, int level) {
     break;
   case 5:
     conditional_print(expr_ast->conditional_ast, level + 1);
+    break;
+  case 6:
+    function_call_print(expr_ast->function_call_ast, level + 1);
     break;
   }
 }
@@ -670,26 +712,30 @@ void function_declaration_add_block_item(
 }
 void function_declaration_print(
     function_declaration_ast_t *function_declaration_ast, int level) {
+  block_item_ast_t *block_item = list_pop(function_declaration_ast->body);
   print_space(level);
-  printf("函数：\n");
+  if (block_item == NULL) {
+    printf("函数原型：\n");
+  } else {
+    printf("函数定义：\n");
+  }
   print_space(level);
   printf("函数名\n");
   identifier_print(function_declaration_ast->function_name, level + 1);
   print_space(level);
   printf("参数表\n");
-  identifier_ast_t *parameter =
-      list_pop(function_declaration_ast->parameters);
+  identifier_ast_t *parameter = list_pop(function_declaration_ast->parameters);
   while (parameter != NULL) {
     identifier_print(parameter, level + 1);
     parameter = list_pop(function_declaration_ast->parameters);
   }
-  print_space(level);
-  printf("函数体\n");
-  block_item_ast_t *block_item =
-      list_pop(function_declaration_ast->body);
-  while (block_item != NULL) {
-    block_item_print(block_item, level + 1);
-    block_item = list_pop(function_declaration_ast->body);
+  if (block_item != NULL) {
+    print_space(level);
+    printf("函数体\n");
+    while (block_item != NULL) {
+      block_item_print(block_item, level + 1);
+      block_item = list_pop(function_declaration_ast->body);
+    }
   }
 }
 
