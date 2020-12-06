@@ -98,6 +98,12 @@ list *lexer(FILE *fp) {
       new_token->value = "?";
       list_push_back(token_list, new_token);
       continue;
+    case ',':
+      new_token = malloc(sizeof(token_t));
+      new_token->type = commas;
+      new_token->value = ",";
+      list_push_back(token_list, new_token);
+      continue;
     case '!':
       new_token = malloc(sizeof(token_t));
       peek = buffer[curr_index + 1];

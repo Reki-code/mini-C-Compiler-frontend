@@ -7,7 +7,7 @@ enum type_e {
   logical_negation, addition, multiplication, division, and_k, or_k, equal,
   not_equal, less_than, less_than_or_equal, greater_than, greater_than_or_equal,
   if_k, else_k, colon, question_mark, for_k, while_k, do_k, break_k,
-  continue_k, operator, literal, eof };
+  continue_k, commas, literal, eof };
 typedef enum type_e type_t;
 typedef struct token {
   type_t type;

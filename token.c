@@ -41,7 +41,7 @@ char *type_names[] = {
   [do_k] = "关键字do",
   [break_k] = "关键字break",
   [continue_k] = "关键字continue",
-	[operator] = "运算符",
+  [commas] = "逗号",
 	[literal] = "字符串字面量",
 	[eof] = "结束标记"
 };
