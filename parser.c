@@ -23,16 +23,21 @@
 <statement>
               | "for" "(" <declaration> <exp-option> ";" <exp-option> ")"
 <statement>
-              | "while" "(" <exp> ")" <statement> | "do" <statement> "while"
-<exp>
-";" | "break" ";" | "continue" ";" <exp-option> ::= <exp> | "" <exp> ::= <id>
-"=" <exp> | <conditional-exp> <conditional-exp> ::= <logical-or-exp> [ "?" <exp>
-":" <conditional-exp> ] <logical-or-exp> ::= <logical-and-exp> { "||"
-<logical-and-exp> } <equality-exp> ::= <relational-exp> { ("!=" | "==")
-<relational-exp> } <relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" |
-">=") <additive-exp> } <additive-exp> ::= <term> { ("+" | "-") <term> } <term>
-::= <factor> { ("*" | "/") <factor> } <factor> ::= "(" <exp> ")" | <unary_op>
-<factor> | <int> | <id> <unary_op> ::= "!" | "~" | "-"
+              | "while" "(" <exp> ")" <statement>
+              | "do" <statement> "while" <exp> ";"
+              | "break" ";"
+              | "continue" ";"
+*//*
+<exp-option> ::= <exp> | ""
+<exp> ::= <id> "=" <exp> | <conditional-exp>
+<conditional-exp> ::= <logical-or-exp> [ "?" <exp> ":" <conditional-exp> ]
+<logical-or-exp> ::= <logical-and-exp> { "||" <logical-and-exp> }
+<equality-exp> ::= <relational-exp> { ("!=" | "==") <relational-exp> }
+<relational-exp> ::= <additive-exp> { ("<" | ">" | "<=" | ">=") <additive-exp> }
+<additive-exp> ::= <term> { ("+" | "-") <term> }
+<term> ::= <factor> { ("*" | "/") <factor> }
+<factor> ::= "(" <exp> ")" | <unary_op> <factor> | <int> | <id>
+<unary_op> ::= "!" | "~" | "-"
 */
 
 expr_ast_t *parse_expr(list *tokens);
