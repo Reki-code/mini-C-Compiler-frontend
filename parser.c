@@ -378,7 +378,7 @@ statement_ast_t *parse_statement(list *tokens) {
   } else if (tok->type == break_k) { // "break" ";"
     list_pop(tokens);
     statement_ast_init_w_break(statement);
-    list_pop(tokens);
+    tok = list_pop(tokens);
     if (tok->type != semicolon) {
       fprintf(stderr, "%s\n", "parse_statement: need ;");
     }
