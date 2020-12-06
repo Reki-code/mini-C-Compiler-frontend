@@ -280,6 +280,10 @@ list *lexer(FILE *fp) {
       list_push_back(token_list, new_token);
       continue;
     }
+    if (last_char == '\0') {
+      break;
+    }
+    fprintf(stderr, "无法识别字符：%c\n", last_char);
   }
   token_t *new_token = malloc(sizeof(token_t));
   new_token->type = eof;
