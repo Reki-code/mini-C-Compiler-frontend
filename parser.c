@@ -10,7 +10,7 @@
 #include "token.h"
 
 /*
-<program> ::= <function>
+<program> ::= { <function> }
 <function> ::= "int" <id> "(" [ "int" <id> { "," "int" <id> } ] ")" ( "{" {
 <block-item> } "}" | ";" )
 
@@ -62,7 +62,7 @@ function_call_ast_t *parse_function_call(list *tokens) {
     function_call_add_argument(function_call_ast, argument);
     tok = list_peek(tokens);
     while (tok->type == commas) {
-      list_pop(tokens); // pop ","
+      list_pop(tokens);              // pop ","
       argument = parse_expr(tokens); // pop <exp>
       function_call_add_argument(function_call_ast, argument);
       tok = list_peek(tokens);
@@ -100,7 +100,7 @@ expr_ast_t *parse_factor(list *tokens) {
     // <facotr> ::= <id> | <function-call>
     token_t *peek_tok = list_peek(tokens);
     if (peek_tok->type == open_parenthesis) { // <function-call>
-      list_push(tokens, tok); // push <id>
+      list_push(tokens, tok);                 // push <id>
       function_call_ast_t *func_call = parse_function_call(tokens);
       return new_expr_ast_w_function_call(func_call);
     } else {
@@ -486,11 +486,18 @@ function_declaration_ast_t *parse_function_declaration(list *tokens) {
   return function_declaration_ast;
 }
 
-// <program> ::= <function>
+// <program> ::= { <function> }
 program_ast_t *parse_program(list *tokens) {
   function_declaration_ast_t *function_declaration_ast =
       parse_function_declaration(tokens);
-  return new_program_ast(function_declaration_ast);
+  program_ast_t *program_ast = new_program_ast(function_declaration_ast);
+  token_t *tok = list_peek(tokens);
+  while (tok->type == int_k) {
+    function_declaration_ast = parse_function_declaration(tokens);
+    program_add_function_declarartion(program_ast, function_declaration_ast);
+    tok = list_peek(tokens);
+  }
+  return program_ast;
 }
 
 program_ast_t *parser(list *tokens) { return parse_program(tokens); }
