@@ -458,6 +458,7 @@ function_declaration_ast_t *parse_function_declaration(list *tokens) {
       list_pop(tokens); // pop "int"
       identifier_ast_t *parameter = parse_identifier(tokens);
       function_declaration_add_parameter(function_declaration_ast, parameter);
+      tok = list_peek(tokens);
     }
   }
   tok = list_pop(tokens); // ")"
