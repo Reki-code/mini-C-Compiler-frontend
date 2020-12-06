@@ -640,24 +640,33 @@ void block_item_print(block_item_ast_t *block_item_ast, int level) {
   }
 }
 
-// function_declaration = Function(id, block_item list)
+// function_declaration = Function(string, // function name
+//                                string list, // parameters
+//                                block_item list option) // body
 typedef struct function_declaration_ast {
-  identifier_ast_t *identifier;
-  list *block_item_list;
+  identifier_ast_t *function_name;
+  list *parameters;
+  list *body;
 } function_declaration_ast_t;
 
 function_declaration_ast_t *
-new_function_declaration_ast(identifier_ast_t *identifier_ast) {
+new_function_declaration_ast(identifier_ast_t *function_name) {
   function_declaration_ast_t *function_declaration =
       malloc(sizeof(function_declaration_ast_t));
-  function_declaration->identifier = identifier_ast;
-  function_declaration->block_item_list = list_create(NULL);
+  function_declaration->function_name = function_name;
+  function_declaration->parameters = list_create(NULL);
+  function_declaration->body = list_create(NULL);
   return function_declaration;
+}
+void function_declaration_add_parameter(
+    function_declaration_ast_t *function_declaration,
+    identifier_ast_t *identifier_ast) {
+  list_push_back(function_declaration->parameters, identifier_ast);
 }
 void function_declaration_add_block_item(
     function_declaration_ast_t *function_declaration_ast,
     block_item_ast_t *block_item) {
-  list_push_back(function_declaration_ast->block_item_list, block_item);
+  list_push_back(function_declaration_ast->body, block_item);
 }
 void function_declaration_print(
     function_declaration_ast_t *function_declaration_ast, int level) {
@@ -665,14 +674,22 @@ void function_declaration_print(
   printf("函数：\n");
   print_space(level);
   printf("函数名\n");
-  identifier_print(function_declaration_ast->identifier, level + 1);
+  identifier_print(function_declaration_ast->function_name, level + 1);
+  print_space(level);
+  printf("参数表\n");
+  identifier_ast_t *parameter =
+      list_pop(function_declaration_ast->parameters);
+  while (parameter != NULL) {
+    identifier_print(parameter, level + 1);
+    parameter = list_pop(function_declaration_ast->parameters);
+  }
   print_space(level);
   printf("函数体\n");
   block_item_ast_t *block_item =
-      list_pop(function_declaration_ast->block_item_list);
+      list_pop(function_declaration_ast->body);
   while (block_item != NULL) {
     block_item_print(block_item, level + 1);
-    block_item = list_pop(function_declaration_ast->block_item_list);
+    block_item = list_pop(function_declaration_ast->body);
   }
 }
 
