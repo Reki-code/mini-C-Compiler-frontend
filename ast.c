@@ -739,14 +739,16 @@ void function_declaration_print(
   }
 }
 
-// program = Program(function_declaration)
+// program = Program(function_declaration list)
 typedef struct program_ast {
-  function_declaration_ast_t *function_declaration_ast;
+  // function_declaration_ast_t *function_declaration_ast;
+  list *function_declarations;
 } program_ast_t;
 
 void program_ast_init(program_ast_t *program_ast,
                       function_declaration_ast_t *function_declaration_ast) {
-  program_ast->function_declaration_ast = function_declaration_ast;
+  program_ast->function_declarations = list_create(NULL);
+  list_push_back(program_ast->function_declarations, function_declaration_ast);
 }
 program_ast_t *
 new_program_ast(function_declaration_ast_t *function_declaration) {
@@ -754,8 +756,18 @@ new_program_ast(function_declaration_ast_t *function_declaration) {
   program_ast_init(program, function_declaration);
   return program;
 }
+void program_add_function_declarartion(
+    program_ast_t *program_ast,
+    function_declaration_ast_t *function_declaration_ast) {
+  list_push_back(program_ast->function_declarations, function_declaration_ast);
+}
 void program_print(program_ast_t *program_ast) {
   int level = 0;
   printf("程序：\n");
-  function_declaration_print(program_ast->function_declaration_ast, level + 1);
+  function_declaration_ast_t *function_declaration_ast =
+      list_pop(program_ast->function_declarations);
+  while (function_declaration_ast != NULL) {
+    function_declaration_print(function_declaration_ast, level + 1);
+    function_declaration_ast = list_pop(program_ast->function_declarations);
+  }
 }
