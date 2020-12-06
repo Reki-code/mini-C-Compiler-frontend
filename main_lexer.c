@@ -16,7 +16,6 @@ int main(int argc, char const *argv[]) {
   }
 
   list *token_list = lexer(fp);
-  printf("%s\n", "lexer exit");
 
   list_print(token_list, print_token);
 

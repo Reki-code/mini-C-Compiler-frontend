@@ -1,6 +1,5 @@
-#include "list.h"
+#include "parser.h"
 #include "token.h"
-#include "ast.h"
 #include "lexer.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -498,24 +497,3 @@ program_ast_t *parse_program(list *tokens) {
 }
 
 program_ast_t *parser(list *tokens) { return parse_program(tokens); }
-
-int main(int argc, char const *argv[]) {
-  if (argc == 1) {
-    fprintf(stderr, "%s\n", "请输入源代码文件");
-    return 0;
-  }
-  FILE *fp = fopen(argv[1], "r");
-  if (fp == NULL) {
-    fprintf(stderr, "%s\n", "文件不存在");
-    return -1;
-  }
-  list *token_list = lexer(fp);
-  list_print(token_list, print_token);
-
-  printf("%s\n", "start parser");
-  program_ast_t *program = parser(token_list);
-  printf("%s\n", "parser finished");
-  program_print(program);
-
-  return 0;
-}

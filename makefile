@@ -1,5 +1,17 @@
-lexer: main.c lexer.c list.c token.c
-	clang main.c lexer.c token.c list.c -o lexer
+CC = clang
+lexer: main_lexer.c lexer.o list.o token.o
+	$(CC) $^ -o $@
 
-parser: parser.c list.c token.c lexer.c ast.c
-	clang parser.c list.c ast.c token.c lexer.c -o parser
+parser: main_parser.c parser.o list.o token.o lexer.o ast.o
+	$(CC) $^ -o $@
+
+list.o: list.c
+token.o: token.c
+lexer.o: lexer.c
+
+ast.o: ast.c
+parser.o: parser.c
+
+.PHONY: clean
+clean:
+	rm *.o lexer parser
