@@ -1,3 +1,5 @@
+#include "ast.h"
+#include "list.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,9 +11,9 @@ void print_space(int level) {
 }
 
 // number literals
-typedef struct number_ast {
+struct number_ast {
   int val;
-} number_ast_t;
+};
 
 void number_ast_init(number_ast_t *number_ast, int value) {
   number_ast->val = value;
@@ -27,9 +29,9 @@ void number_print(number_ast_t *number_ast, int level) {
 }
 
 // identifier
-typedef struct identifier_ast {
+struct identifier_ast {
   char *name;
-} identifier_ast_t;
+};
 
 void identifier_ast_init(identifier_ast_t *identifier_ast, char *name) {
   identifier_ast->name = name;
@@ -44,15 +46,11 @@ void identifier_print(identifier_ast_t *identifier_ast, int level) {
   printf("标识符：%s\n", identifier_ast->name);
 }
 
-struct expr_ast;
-typedef struct expr_ast expr_ast_t;
-void expr_print(expr_ast_t *expr_ast, int level);
-
 // unOp(operator, expr)
-typedef struct unary_operator_ast {
+struct unary_operator_ast {
   char *operator_str;
   expr_ast_t *expr_ast;
-} unary_operator_ast_t;
+};
 
 void unary_operator_ast_init(unary_operator_ast_t *unary_operator_ast,
                              char *operator, expr_ast_t * expr_ast) {
@@ -75,11 +73,11 @@ void unary_operator_print(unary_operator_ast_t *unary_operator_ast, int level) {
 }
 
 // binOp(binary_operator, exp, exp)
-typedef struct binary_operator_ast {
+struct binary_operator_ast {
   char *operator_str;
   expr_ast_t *left_expr;
   expr_ast_t *right_expr;
-} binary_operator_ast_t;
+};
 
 binary_operator_ast_t *new_binary_operator(char *operator,
                                            expr_ast_t * left_expr,
@@ -105,11 +103,12 @@ void binary_operator_print(binary_operator_ast_t *binary_operator_ast,
   expr_print(binary_operator_ast->right_expr, level + 1);
 }
 
-typedef struct conditional_ast {
+// Conditional(exp, exp, exp)
+struct conditional_ast {
   expr_ast_t *condition;
   expr_ast_t *if_expr;
   expr_ast_t *else_expr;
-} conditional_ast_t;
+};
 conditional_ast_t *new_conditional_ast(expr_ast_t *condition,
                                        expr_ast_t *if_expr,
                                        expr_ast_t *else_expr) {
@@ -132,10 +131,10 @@ void conditional_print(conditional_ast_t *conditional_ast, int level) {
 }
 
 // FunCall(string, exp list) // string is the function name
-typedef struct function_call_ast {
+struct function_call_ast {
   identifier_ast_t *function_name;
   list *arguments;
-} function_call_ast_t;
+};
 function_call_ast_t *new_function_call_ast(identifier_ast_t *function_name) {
   function_call_ast_t *function_call_ast = malloc(sizeof(function_call_ast_t));
   function_call_ast->function_name = function_name;
@@ -162,10 +161,6 @@ void function_call_print(function_call_ast_t *function_call_ast, int level) {
   }
 }
 
-struct assign_ast;
-typedef struct assign_ast assign_ast_t;
-void assign_print(assign_ast_t *assign_ast, int level);
-
 // expr  = Number(int) | unOp(operator, expr) | FunCall(id, exp list)
 // BinOp(binary_operator, exp, exp)| Assign(string, exp) | identifier(string)
 // | Conditional(exp, exp, exp) //the three expressions are the condition,
@@ -182,7 +177,6 @@ struct expr_ast {
   };
   int u;
 };
-
 void expr_ast_init_w_number(expr_ast_t *expr_ast, number_ast_t *number_ast) {
   expr_ast->number_ast = number_ast;
   expr_ast->u = 0;
@@ -268,9 +262,9 @@ void expr_print(expr_ast_t *expr_ast, int level) {
 }
 
 // return
-typedef struct return_ast {
+struct return_ast {
   expr_ast_t *expr_ast;
-} return_ast_t;
+};
 
 void return_ast_init(return_ast_t *return_ast, expr_ast_t *expr_ast) {
   return_ast->expr_ast = expr_ast;
@@ -287,10 +281,10 @@ void return_print(return_ast_t *return_ast, int level) {
 }
 
 // assign
-typedef struct assign_ast {
+struct assign_ast {
   identifier_ast_t *identifier_ast;
   expr_ast_t *expr_ast; // option
-} assign_ast_t;
+};
 
 void assign_ast_init(assign_ast_t *assign_ast, identifier_ast_t *identifier_ast,
                      expr_ast_t *expr_ast) {
@@ -319,11 +313,11 @@ typedef struct statement_ast statement_ast_t;
 void statement_print(statement_ast_t *statement_ast, int level);
 
 // If(expr, statement, statement option)
-typedef struct if_ast {
+struct if_ast {
   expr_ast_t *expr_ast;
   statement_ast_t *if_branch;
   statement_ast_t *else_branch;
-} if_ast_t;
+};
 
 if_ast_t *new_if_ast(expr_ast_t *expr_ast, statement_ast_t *if_branch) {
   if_ast_t *if_ast = malloc(sizeof(if_ast_t));
@@ -349,13 +343,10 @@ void if_ast_print(if_ast_t *if_ast, int level) {
   }
 }
 
-struct block_item_ast;
-typedef struct block_item_ast block_item_ast_t;
-void block_item_print(block_item_ast_t *block_item_ast, int level);
-
-typedef struct compound_ast {
+// compound
+struct compound_ast {
   list *block_item_list;
-} compound_ast_t;
+};
 compound_ast_t *new_compound_ast() {
   compound_ast_t *compound_ast = malloc(sizeof(compound_ast_t));
   compound_ast->block_item_list = list_create(NULL);
@@ -377,12 +368,12 @@ void compound_ast_print(compound_ast_t *compound_ast, int level) {
 
 // For(exp option, exp, exp option, statement) // initial expression, condition,
 // post-expression, body
-typedef struct for_ast {
+struct for_ast {
   expr_ast_t *initial; // option
   expr_ast_t *condition;
   expr_ast_t *post; // option
   statement_ast_t *body;
-} for_ast_t;
+};
 for_ast_t *new_for_ast() {
   for_ast_t *for_ast = malloc(sizeof(for_ast_t));
   for_ast->initial = NULL;
@@ -426,12 +417,12 @@ void for_ast_print(for_ast_t *for_ast, int level) {
 
 // ForDecl(declaration, exp, exp option, statement) // initial declaration,
 // condition, post-expression, body
-typedef struct for_decl_ast {
+struct for_decl_ast {
   assign_ast_t *initial;
   expr_ast_t *condition;
   expr_ast_t *post; // option
   statement_ast_t *body;
-} for_decl_ast_t;
+};
 for_decl_ast_t *new_for_decl_ast() {
   for_decl_ast_t *for_decl_ast = malloc(sizeof(for_decl_ast_t));
   for_decl_ast->initial = NULL;
@@ -473,10 +464,10 @@ void for_decl_ast_print(for_decl_ast_t *for_decl_ast, int level) {
 }
 
 // While(expression, statement) // condition, body
-typedef struct while_ast {
+struct while_ast {
   expr_ast_t *condition;
   statement_ast_t *body;
-} while_ast_t;
+};
 while_ast_t *new_while_ast() {
   while_ast_t *while_ast = malloc(sizeof(while_ast_t));
   return while_ast;
@@ -535,7 +526,7 @@ void do_ast_print(do_ast_t *do_ast, int level) {
 //           | Do(statement, expression)
 //           | Break
 //           | Continue
-typedef struct statement_ast {
+struct statement_ast {
   union {
     return_ast_t *return_ast;
     assign_ast_t *assign_ast;
@@ -549,7 +540,7 @@ typedef struct statement_ast {
     do_ast_t *do_ast;
   };
   int u;
-} statement_ast_t;
+};
 
 statement_ast_t *new_statement_ast() {
   statement_ast_t *statement = malloc(sizeof(statement_ast_t));
@@ -648,13 +639,13 @@ void statement_print(statement_ast_t *statement_ast, int level) {
 }
 
 // block_item = Statement(statement) | Declaration(declaration)
-typedef struct block_item_ast {
+struct block_item_ast {
   union {
     statement_ast_t *statement;
     assign_ast_t *assign_ast;
   };
   int u;
-} block_item_ast_t;
+};
 block_item_ast_t *new_block_item_ast() {
   block_item_ast_t *block_item_ast = malloc(sizeof(block_item_ast_t));
   return block_item_ast;
@@ -685,11 +676,11 @@ void block_item_print(block_item_ast_t *block_item_ast, int level) {
 // function_declaration = Function(string, // function name
 //                                string list, // parameters
 //                                block_item list option) // body
-typedef struct function_declaration_ast {
+struct function_declaration_ast {
   identifier_ast_t *function_name;
   list *parameters;
   list *body;
-} function_declaration_ast_t;
+};
 
 function_declaration_ast_t *
 new_function_declaration_ast(identifier_ast_t *function_name) {
@@ -740,10 +731,10 @@ void function_declaration_print(
 }
 
 // program = Program(function_declaration list)
-typedef struct program_ast {
+struct program_ast {
   // function_declaration_ast_t *function_declaration_ast;
   list *function_declarations;
-} program_ast_t;
+};
 
 void program_ast_init(program_ast_t *program_ast,
                       function_declaration_ast_t *function_declaration_ast) {

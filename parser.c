@@ -1,13 +1,9 @@
 #include "list.h"
 #include "token.h"
-
-#include <stdio.h>
-
-#include "ast.c"
-
+#include "ast.h"
 #include "lexer.h"
-#include "list.h"
-#include "token.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /*
 <program> ::= { <function> }
